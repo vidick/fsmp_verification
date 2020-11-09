@@ -1,0 +1,261 @@
+\chapter{Verification for $n$-qubit Hamiltonians in $XX-ZZ$ form}
+\label{chap:nqubit}
+
+
+Moving beyond the case of a single qubit, our goal in this lecture is to generalize the results from Section~\ref{sec:extract-comp-qubit} to a procedure for extracting $n$ qubits from a prover, together with a statement that allows us to relate measurements in the standard or Hadamard basis of the extracted qubits to measurements performed by the prover in the protocol. Once this has been put in place we will not be far from a delegation protocol along the lines of the Fitzsimons-Morimae protocol from Section~\ref{sec:fm}, but, crucially, with classical verifier and communication. 
+
+\section{Setup}
+
+To set the stage we first give a straightforward generalization of the single-qubit verification protocol from Figure~\ref{fig:protocol-mahadev-oq} to the case of $n$ qubits. Recall from Section~\ref{sec:fm-protocol} that for our purposes it suffices to consider Hamiltonians that take the form~\eqref{eq:lh-comp}. This form allows us to restrict our attention to a collection of measurement outcomes on an $n$-qubit state such that all qubits are measured in the same basis, computational or Hadamard. In particular we do not need to consider ``mixed'' measurements, with some qubits measured in the standard basis and other qubits in the Hadamard basis, because~\eqref{eq:lh-comp} does not have mixed terms such as $\sigma_{X,i}\sigma_{Z,j}$. (See Remark~\ref{rk:mixed-terms} regarding extensions to the mixed case.) It is then natural to request that the honest prover behaves exactly as in the single-qubit verification protocol, except that each action should be repeated independently for each of the $n$ qubits: in the first phase the verifier sends the information for $n$ functions $f_{pk_1},\ldots,f_{pk_n}$, the prover executes the encoding procedure from the proof of Lemma~\ref{lem:oq-completeness} independently for each of the $n$ qubits of its claimed low-energy eigenstate $\ket{\varphi}$ of $H_\mC$ and reports the $n$ images $y_1,\ldots,y_n$ obtained; in the second phase the verifier sends a single-bit challenge $c\in\{0,1\}$ and the prover measures all its qubits in the computational or Hadamard basis and returns the outcomes $x_1,\ldots,x_n$ or $d_1,\ldots,d_n$ respectively. Note that the only part that is not repeated is the challenge, which is identical for each of the $n$ concurrent repetitions. The reason that we can restrict ourselves to such challenges is due to the form of $H_\mC$ from~\eqref{eq:lh-comp} and, as we will see, greatly simplifies the analysis. The complete  protocol is given in Figure~\ref{fig:protocol-mahadev-nq}.
+
+\begin{figure}[htbp]
+\rule[1ex]{16.5cm}{0.5pt}\\
+Let $\mF$ be a $2$-to-$1$ trapdoor claw-free function family and $\lambda\in\mathbb{N}$ a security parameter. Let $\eps,\delta>0$ be accuracy parameters. Let $\gamma = 0$ and $N = \frac{C}{\delta^2}{n\choose 2}^2 \ln(1/\eps)$.
+The verifier and prover repeat the following interaction $N$ times.
+ \begin{enumerate}
+\item The verifier selects a pair $i\neq j \in \{1,\ldots,n\}$ and $W\in\{X,Z\}$ uniformly at random.
+\item For $\ell=1,\ldots,n$ the verifier generates $(pk_\ell,td_\ell)\leftarrow \textsc{Gen}(1^\lambda)$. It sends $(pk_1,\ldots,pk_n)$ to the prover. 
+\item The prover returns $y_1,\ldots,y_n \in \{0,1\}^m$, where $m=m(\lambda)$. 
+\item The verifier selects a uniformly random challenge $c\leftarrow_R \{0,1\}$ and sends $c$ to the prover. 
+\item 
+\begin{enumerate}
+\item \emph{(Computational basis, $c=0$:)} In case $c=0$ the prover is expected to return $x_1,\ldots,x_n\in\{0,1\}^m$. If $f_{pk_\ell}(x_\ell)\neq 0$ for any $\ell$ then the verifier immediately aborts. The verifier sets 
+\[\gamma \leftarrow \gamma - J_{ij}\, (-1)^{b(x_i)}(-1)^{b(x_j)}\;.\] 
+\item \emph{(Hadamard basis, $c=1$:)} In case $c=1$ the prover is expected to return $d_1,\ldots,d_n\in \{0,1\}^m$. The verifier uses $td_i$ and $td_j$ to determine the preimages $(x_{i,0},x_{i,1})$ of $y_i$ by $f_{pk_i}$ and  $(x_{j,0},x_{j,1})$ of $y_j$ by $f_{pk_j}$ respectively. She sets 
+\[ \gamma \leftarrow \gamma - J_{ij}\, (-1)^{d_i\cdot( x_{i,0}+x_{i,1})} (-1)^{d_j\cdot( x_{j,0}+x_{j,1})}\;.\] 
+\end{enumerate}
+\end{enumerate}
+If the verifier has not aborted at any of the steps $c=0$, she returns the real number $o=\frac{1}{N}{n\choose 2}\gamma$. 
+\rule[1ex]{16.5cm}{0.5pt}
+\caption{Verification protocol $\mathfrak{V}_n$ for an $n$-qubit Hamiltonian $H_\mC = - \sum_{i,j} \frac{J_{ij}}{2}(\sigma_{X,i} \sigma_{X,j} + \sigma_{Z,i} \sigma_{Z,j})$.}
+\label{fig:protocol-mahadev-nq}
+\end{figure}
+
+Before proceeding to the analysis of the protocol we examine the question, ``Where are the qubits?'' For the single-qubit verification protocol our initial intuition came from the qubit computational test from lecture~\ref{chap:computational-test}, for which we were able to argue that the prover indeed has a qubit $(\ket{\psi},Z,X)$. For the verification protocol seen in the last lecture we saw that in order to allow verification of other states than the $\ket{+}$ state we had to remove some of the tests done by the verifier (specifically, the equation check) and that due to this we were no longer able to guarantee a qubit in the sense of Definition~\ref{def:qubit-2}. Nevertheless we were able to get around this by defining an abstract \emph{extracted qubit} that did not directly correspond to the prover's observables but was still such that measurement outcomes on the extracted qubit could be shown to have a distribution that is negligibly close to outcomes obtained from the prover in the actual protocol (Lemma~\ref{lem:comp-ind-qubits}). 
+
+For the case of demonstrating $n$ qubits a priori one would have to show that the prover has a state $\ket{\psi}$ and two families of observables $\{X(a):\, a\in\{0,1\}^n\}$ and $\{Z(b):\,b\in\{0,1\}^n\}$ that satisfy the Pauli commutation and anti-commutation relations when they act on $\ket{\psi}$. Indeed, a straightforward generalization of Lemma~\ref{lem:qubit-2-rigid} then guarantees the existence of a suitable isometry with the space of $n$ actual qubits. 
+Showing this is challenging; luckily, for our purposes it is also not necessary. Indeed, just as in the single-qubit case it is worth emphasizing that in the context of verification we do not need to guarantee that the prover has a certain quantum state, nor that it is able to perform certain measurements on it. The only real requirement is that a state $\ket{\varphi}$ \emph{exists} such that $\bra{\varphi} H_\mC \ket{\varphi} \leq a$. Thus, as we did in the analysis of the single-qubit verification protocol we will first introduce a abstract \emph{extracted $n$ qubit} defined from the prover's state and actions in the protocol but that also include additional ingredients that make it at first unclear how they relate to the prover itself. The definition of the extracted qubits is given in Section~\ref{sec:extract}. Once this has been defined we will perform the second, crucial step, which is to relate the distribution of measurement outcomes on the extracted qubits to quantities that are directly observable in the protocol. This is done in Section~\ref{sec:nqubit-measurements}. Finally in Section~\ref{sec:nqubit-verification} we put everything together and show the completeness and soundness properties of the verification protocol given in Figure~\ref{fig:protocol-mahadev-nq}. In addition in Section~\ref{sec:tcf-construction} we will sketch a construction of a function family based on the Learning With Errors (LWE) problem that (approximately) satisfies all required assumptions  and can thus be used to instantiate the protocol. 
+
+
+\section{The $n$ extracted qubits}
+\label{sec:extract}
+
+\subsection{Modeling the prover}
+
+We start by introducing notation that allows us to model an arbitrary prover in the protocol. 
+Similarly to how we modeled the prover for the analysis of the computational qubit test in Section~\ref{sec:comp-test}, a prover in the $n$-qubit verification protocol from Figure~\ref{fig:protocol-mahadev-nq} can be represented using the following objects:
+\begin{enumerate}
+\item A state $\ket{\psi}$, that may depend on $pk_1,\ldots,pk_n$ and $y_1,\ldots,y_n$, such that $\ket{\psi} \in \mH_{\reg{X}_1} \otimes \cdots \mH_{\reg{X}_n} \otimes \mH_{\reg{P}}$ with each space $\mH_{\reg{X}_i}$ isomorphic to $(\C^2)^{\otimes m}$. The state $\ket{\psi}$ represents the state of the prover and the message registers at the end of step 3 in the protocol. 
+\item For the case $c=0$, the prover directly measures all the $\reg{X}$ registers in the standard basis to obtain $x_1,\ldots,x_n$ that it returns to the verifier. For a string $a\in \{0,1\}^n$ we let 
+\begin{equation}\label{eq:comp-nqubit-1a}
+Z(a) \,=\, \sum_{x_1,\ldots,x_n} (-1)^{a_1 \cdot b_1(x_1)}\cdots (-1)^{a_n \cdot b_n(x_n)} \proj{x_1}\otimes \cdots \proj{x_n}\;,
+\end{equation}
+where the functions $b_i$ are not necessarily all equal since they may depend on $pk_i$. This is analogous to~\eqref{eq:comp-qubit-proof-1a}.
+\item For the case $c=1$, the prover applies an arbitrary unitary $U$ followed by a measurement of the qubits in $\reg{X}$ in the Hadamard basis to obtain $d_1,\ldots,d_n$. For a string $b\in \{0,1\}^n$ we let 
+\begin{align}
+ X(b)&= \sum_{d_1,\ldots,d_n} (-1)^{b_1 (d_1\cdot(x_{1,0}+x_{1,1}))}\cdots (-1)^{b_n (d_n\cdot(x_{n,0}+x_{n,1}))} \notag\\
+&\qquad\qquad \cdot U^\dagger \big(H^{\otimes nm}_\reg{X}\otimes \Id_\reg{P}\big)^\dagger \big(\proj{d_1,\ldots,d_n}_\reg{X} \otimes \Id_\reg{P} \big)\big(H^{\otimes nm}_\reg{X}\otimes \Id_\reg{P}\big) U\;.\label{eq:comp-nqubit-proof-1b}
+\end{align}
+\end{enumerate}
+
+\begin{remark}\label{rk:mixed-terms}
+Note that the fact that the protocol only has two different challenges, $c=0$ and $c=1$, allows us to have a simple description for all $Z(a)$ and all $X(b)$ observables that involves only one ``adversarial'' unitary $U$. If we had to design a protocol that allows more general Hamiltonians with mixed terms of the form $\sigma_{X,i}\sigma_{Z,j}$ we would need to consider more challenges, and this would require a more complex analysis. This is done in~\cite{mahadev2018classical}.
+\end{remark}
+
+
+\subsection{The isometry $V$}
+
+Next we define the $n$-qubit isometry $V$, and the extracted qubits. 
+
+\begin{claim}\label{claim:iso-xz-n1}
+Let $\ket{\psi} \in \mH$ and for every $a,b\in\{0,1\}^n$, $X(a)$ and $Z(b)$ observables on $\mH$ such that all $X(a)$ (resp. all $Z(b)$) mutually commute and moreover $X(a)X(a')=X(a+a')$ for any $a,a'\in\{0,1\}^n$. Let $V: \mH \to \mH_\reg{Q} \otimes \mH_\reg{A} \otimes \mH'$ where each of $\mH_\reg{Q}$ and $\mH_\reg{A}$ is $(\C^2)^{\otimes n}$ and $\mH'\simeq \mH$ be defined for all $\ket{\varphi} \in \mH$ as
+\begin{equation}\label{eq:explicit-isometry-n}
+V\ket{\varphi}\,=\, \Big(\frac{1}{2^n} \sum_{a,b} \Id\otimes  \sigma_X(a)\sigma_Z(b)\otimes X(a)Z(b) \Big)\ket{\phi^+}^{\otimes n} \ket{\varphi} \;,
+\end{equation} 
+where each EPR pair $\ket{\phi^+}$ has one qubit in register $\reg{Q}$ and the other in register $\reg{A}$ and the $\sigma_X$ and $\sigma_Z$ operators act on register $\reg{A}$. Then $V$ is an isometry.
+\end{claim}
+
+The proof of the claim is immediate and only uses that the family of states 
+\[\big\{ (\sigma_X(a)\sigma_Z(b)\otimes \Id ) \ket{\phi^+}^{\otimes n} :\, a,b\in\{0,1\}^n\big\}\]
+is orthonormal. Similarly to Definition~\ref{def:extracted-qubit} we can now define the $n$ extracted qubits. 
+
+\begin{definition}[Extracted qubits]\label{def:extracted-qubit-n}
+Let $P$ be a prover in the verification protocol $\pv_n$ described in Figure~\ref{fig:protocol-mahadev-nq}. Let $\ket{\psi}$ be the state of $P$ after having sent $y_1,\ldots,y_n$ at step 3 of the $t$-th iteration, for some $t\in\{1,\ldots,N\}$. Let $V$ be defined in~\eqref{eq:explicit-isometry-n}. Then we call the reduced density of $V\ket{\psi}$ on register $\reg{Q}$ the \emph{extracted qubits} (implicitly, at iteration $t$) and denote them by $\rho_{\reg{Q}_1\cdots\reg{Q}_n}$. 
+\end{definition}
+
+
+
+\section{Measurements on the extracted qubits}
+\label{sec:nqubit-measurements}
+
+We start with the following analogue to Claim~\ref{claim:iso-xz}, which gives an explicit formula for the distribution of measurements in the standard or Hadamard basis on the $n$ extracted qubits as a function of the prover's state and observables. 
+
+\begin{claim}\label{claim:iso-xz-n}
+The following hold for any prover, with $\rho$ the $n$ extracted qubits at any iteration (Definition~\ref{def:extracted-qubit-n}):
+\begin{align}
+\forall b\in \{0,1\}^n\;,\qquad \Tr\big(\sigma_Z(b) \rho \big)  &=\bra{\psi} Z(b) \ket{\psi}\;,\label{eq:isometry-z-n}\\
+\forall a\in \{0,1\}^n\;,\qquad Tr\big(\sigma_X(a) \rho \big)  &= \frac{1}{2^n} \sum_b \, (-1)^{a\cdot b} \bra{\psi} Z(b) X(a) Z(b) \ket{\psi} \;.\label{eq:isometry-x-n}
+\end{align}
+\end{claim}
+
+The claim can be illustrated using the following generalization of~\eqref{diag:one-qubit-b}
+\begin{equation}\label{diag:one-qubit-c}
+\begin{tikzcd}
+\mH  \arrow{r}{V}  \arrow[swap]{dd}{\substack{Z(b) \\[3mm] \Es{b\in\{0,1\}} (-1)^{b\cdot a}\, Z(b)X(a)Z(b) }} &  \C^2 \otimes \mH' \arrow{dd}{\substack{\sigma_Z(b)\otimes \Id\\[3mm] \sigma_X(a)\otimes \Id}} \\
+&\\ 
+\mH  \arrow{r}{V} & \C^2 \otimes \mH'
+\end{tikzcd}
+\end{equation}
+
+
+\begin{proof}
+Eq.~\eqref{eq:isometry-z-n} is immediate using that $X(a)$ are observables and $\bra{\phi^+}^{\otimes n} \sigma_X(a')\sigma_Z(b') \otimes \sigma_Z(b) \ket{\phi^+}^{\otimes n}$ is zero unless $a'=0$ and $b=b'$. Eq.~\eqref{eq:isometry-x-n} is shown similarly by direct calculation, using $X(a')X(a'')=X(a'+a'')$ and $\sigma_Z(b)\sigma_X(a)\sigma_Z(b)=(-1)^{a\cdot b}\sigma_X(a)$. 
+\end{proof}
+
+The next lemma is the key lemma. It argues that for computationally bounded provers, the quantity on the right-hand side of~\eqref{eq:isometry-x-n} is close to the simpler quantity $\bra{\psi} X(a) \ket{\psi}$, that in particular can be inferred in the protocol from the prover's outcomes $y_i$ and $d_i$ (for those $i$ such that $a_i=1$). Before we can state the lemma
+we need to introduce one last assumption on the function family $\mF$. Intuitively, this assumption is a natural quantum analogue of the classical property of collision resistance, but is stronger than it. 
+\begin{enumerate}[label=(\textbf{F.5})]
+\item\label{ass:f5}
+Consider the following abstract game between an arbitrary ``adversary'' (think prover) and a trusted (quantum) ``challenger'' (think verifier). First, the adversary is provided a label $pk$ (generated at random by the challenger) and required to prepare an arbitrary state of the form $\ket{\phi} = \sum_x \alpha_x \ket{x}$, where $x$ ranges over the domain of $f_{pk}$. (In general the adversary may keep an additional register entangled with this state. For ease of notation we do not consider such entanglement in this description.) The adversary hands the state $\ket{\phi}$ over to the challenger, who evaluates $f_{pk}$ in superposition on $\ket{\phi}$ and measures the image register, obtaining a $y$ in the range of $f_{pk}$ and the (suitably re-normalized) post-measurement state $\ket{\phi'} = \sum_{x:f_{pk}(x)=y} \alpha_x \ket{x}$. The challenger then returns to the adversary the string $c$ together with \emph{either} the state $\ket{\phi'}$ \emph{or} the probabilistic mixture $\sum_{x:f(x)=c} |\alpha_x|^2 \ket{x}\!\bra{x}$ obtained by measuring the same state $\ket{\phi'}$ in the computational basis (and throwing away the outcome). The adversary wins if it correctly guesses which is the case. Assumption~\ref{ass:f5} on the function family $\mF$ states that for any QPT adversary $\mA$ there is a negligible function $\mu$ such that for any $\lambda$, $\mA$ succeeds in this game with probability that deviates from~$\frac{1}{2}$ by at most~$\mu(\lambda)$.
+\end{enumerate}
+
+\begin{remark}
+Assumption~\ref{ass:f5} is referred to as the ``collapsing'' property for the function family $\mF$. This property was introduced by Unruh as a strengthening of the classical property of collision resistance required for his work on the security of commitment protocols that are  computationally binding against quantum adversaries~\cite{unruh2016computationally}. 
+The reason that this assumption implies collision resistance is that, if the function were not collision resistant, the adversary could identify a colliding pair $(x_0,x_1)$ and submit $\ket{\phi}=\frac{1}{\sqrt{2}}(\ket{x_0}+\ket{x_1})$ to the challenger. It could then measure the challenger's response in a basis containing the two states $\frac{1}{\sqrt{2}}(\ket{x_0}\pm\ket{x_1})$ and guess that, in case the ``$-$'' outcome is obtained, the challenger must have measured; in the other case, the adversary guesses at random. 
+
+Note that assumption~\ref{ass:f2} \emph{also} trivially implies collision resistance, since the ability to identify a claw allows one to generate arbitrary equations in it. It is possible to show that both~\ref{ass:f2} and~\ref{ass:f5} are strictly stronger than collision resistance. It is likely that the two assumptions are incomparable, but I have not tried to show this explicitly. 
+\end{remark}
+
+We can now state and prove the key lemma. 
+
+\begin{lemma}\label{lem:comp-ind-nqubits}
+Let $P$ be a prover that succeeds with probability $1$ in protocol $\pv_n$. Let $\rho$ be the $n$ extracted qubits, as defined in Definition~\ref{def:extracted-qubit-n} (for any iteration). Then the following hold for any $i\neq j \in \{1,\ldots, n\}$:
+\begin{itemize}
+\item ($Z$-measurement:) The outcome of measuring qubits $i$ and $j$ of $\rho$ in the computational basis is identically distributed to the bits $b(x_i)$ and $b(x_j)$ obtained from the prover in case $c=0$.
+\item ($X$-measurement:) Under assumptions~\ref{ass:f2} and~\ref{ass:f5} the outcome of measuring qubits $i$ and $j$ of $\rho$ in the Hadamard basis is \emph{computationally indistinguishable} from the pair of bits ${d_i\cdot(x_{i,0}+x_{i,1})}$ and ${d_j\cdot(x_{j,0}+x_{j,1})}$ where $d_i$ and $d_j$ are obtained from the prover in case $c=1$.
+\end{itemize}
+\end{lemma}
+
+As already noted in the previous lecture, for distributions on two bits the notions of computational and statistical indistinguishability are essentially equivalent. The lemma generalizes to the joint distribution of any number of bits, and in this case it is only the weaker computational indistiguishability that is obtained. For simplicity we restrict ourselves to proving the lemma for the setting of two bis only. 
+
+\begin{proof}
+For the case of a measurement in the computational basis the lemma follows directly from~\eqref{eq:isometry-z-n} in Claim~\ref{claim:iso-xz-n} and the definition of the extracted qubits. 
+For the case of a measurement in the Hadamard basis we proceed in two steps. 
+
+In the first step we show that for any $b\in\{0,1\}^n$ the states $\ket{\psi}$ and $Z(b)\ket{\psi}$ are computationally indistinguishable. We show this by performing a reduction to an adversary that breaks assumption~\ref{ass:f5}. Fix any $i\in\{1,\ldots n\}$ and suppose for contradiction that there exists an efficient observable $R$ such that 
+\[ \big|\bra{\psi} R \ket{\psi} -  \bra{\psi} Z(e_i) R Z(e_i) \ket{\psi} \big| \,>\, \frac{1}{q(\lambda)}\;,\]
+for some polynomial $q$ and where the left-hand side should be understood on expectation over the creation of a state $\ket{\psi}$ according to the first three steps of protocol $\pv_n$. Let $i$ be a position in which $b_i\neq 0$. Our goal is to reach a contradiction with~\ref{ass:f5}. Towards this we construct an adversary $\mA$ to the collapsing game that underlies assumption~\ref{ass:f5}. Upon input $pk$, $\mA$ creates the state $\ket{\psi}$ and returns to the challenger only the $m$-qubit register $\reg{X}_i$. Note that the first part of the challenger's actions in the game does not change $\ket{\psi}$, since the prover has already collapsed it to a pair of preimages. The two cases correspond to the challenger returning either the mixed state $\sum_{b\in\{0,1\}} Z_{b,i} \proj{\psi} Z_{b,i}$ or $\proj{\psi}$, where $Z_{b,i}= (\Id + (-1)^{b} Z(e_i))/2$. The adversary $\mA$ measures $R$ and returns the outcome. The advantage of $\mA$ in distinguishing the two cases is 
+\[ \Big| \bra{\psi} R \ket{\psi} - \sum_b  \bra{\psi} Z_{b,i} R Z_{b,i} \ket{\psi}\Big| \,=\, \frac{1}{2}\big|  \bra{\psi} R \ket{\psi} - \bra{\psi} Z(e_i) R Z(e_i)\ket{\psi}\big|\;,\]
+where the equality follows by definition of $Z_{b,i}$. 
+Since by~\ref{ass:f5} this advantage should be negligible, we deduce that for every $i\in\{1,\ldots,n\}$ and every efficient observable $R$ it must be that 
+\begin{equation}\label{eq:comp-ind-n-1}
+\bra{\psi}R \ket{\psi} \approx \bra{\psi} Z(e_i)RZ(e_i)\ket{\psi}\;.
+\end{equation}
+ Since for any $b$ the observable $Z(b)RZ(b)$ itself is efficient, applying~\eqref{eq:comp-ind-n-1} $n$ times (with different choices of $R$) we deduce that for any $b$ and efficient $R$, 
+\begin{align*} 
+\bra{\psi} R \ket{\psi} &\approx \bra{\psi} Z(b_1e_1) R Z(b_1e_1) \ket{\psi}\\
+&\approx \bra{\psi} Z(b_1e_1+b_2e_2) R Z(b_1e_1+b_2e_2) \ket{\psi}\\
+&\approx \cdots\\
+&\approx \bra{\psi} Z(b) R Z(b)\ket{\psi}\;.
+\end{align*}
+We now extend the preceding reasoning to show that for any $a$ of the form $a = a_i e_i + a_j e_j$ with $e_i,e_j$ the canonical basis vectors and $a_i,a_j\in\{0,1\}$,
+\begin{align}
+ \Big| \frac{1}{2^n} \sum_b \, &(-1)^{a\cdot b} \bra{\psi} Z(b) X(a) Z(b) \ket{\psi}  \notag\\
+&\qquad -  \frac{1}{4} \sum_{b_i,b_j\in \{0,1\}}\,  (-1)^{a_ib_i+a_jb_j} \bra{\psi} Z(b_i e_i + b_j e_j) X(a) Z(b_i e_i + b_j e_j) \ket{\psi}\Big|\,\leq\,\mu(\lambda) \;,\label{eq:comp-ind-nqubits}
+	\end{align}
+	for some negligible function $\nu$. Supposing this were not the case, by the triangle inequality and an averaging argument there must exist a $b$ such that 
+	\[ \big| \bra{\psi} Z(b) X(a) Z(b) \ket{\psi} - \bra{\psi} Z(b_i e_i + b_j e_j) X(a) Z(b_i e_i + b_j e_j) \ket{\psi}\big| \, > \, \frac{1}{q(\lambda)}\;,\]
+	for some polynomial $q$. This leads to a contradiction with~\ref{ass:f5} using the same reasoning as before, because from the point of view of the statement of~\ref{ass:f5} for qubits not in positions $i$ and $j$, the observable $X(a)$ is efficient, as its computation only requires trapdoors $td_i$ and $td_j$. 
+	
+	To obtain the second part of the claim it remains to handle the $Z(e_i)$ and $Z(e_j)$ operators. For the positions $i$ and $j$ the associated trapdoor information \emph{is} used in the computation of $X(a)$, so the preceding reasoning cannot be applied. Instead, we proceed similarly to the proof of Lemma~\ref{lem:comp-ind-qubits}, by reduction to the adaptive hardcore bit property, assumption~\ref{ass:f2}. Note that if $a_i=0$ or $a_j=0$ then our task is exactly the task handled in Lemma~\ref{lem:comp-ind-qubits}. So assume $a_i=a_j=1$. We perform a reduction to Lemma~\ref{lem:comp-ind-qubits} via a simple hybrid argument. Suppose for the sake of contradiction that 
+	\[ \Big| \bra{\psi} X(a) \ket{\psi} -  \frac{1}{4} \sum_{b_i,b_j\in \{0,1\}}\,  (-1)^{a_ib_i} \bra{\psi} Z(b_i e_i + b_j e_j) X(a) Z(b_i e_i + b_j e_j) \ket{\psi}\Big|\,>\, \frac{1}{q(\lambda)}\;.\]
+	Then by the triangle inequality and averaging it must be that either 
+		\[ \Big| \bra{\psi} X(a) \ket{\psi} -  \frac{1}{2} \sum_{b_i\in \{0,1\}}\,  (-1)^{a_ib_i+a_jb_j} \bra{\psi} Z(b_i e_i) X(a) Z(b_i e_i ) \ket{\psi}\Big|\,>\, \frac{1}{q(\lambda)}\;,\]
+	or
+		\[ \Big| \bra{\psi}Z(b_j) X(a) Z(b_j)\ket{\psi} - \frac{1}{2} \sum_{b_i\in \{0,1\}}\,  (-1)^{a_ib_i} \bra{\psi} Z(b_i e_i + e_j) X(a) Z(b_i e_i + e_j ) \ket{\psi}\Big|\,>\, \frac{1}{q(\lambda)}\;.\]
+	The first case is ruled out directly by Lemma~\ref{lem:comp-ind-qubits}. The second case is ruled out by the same lemma, simply considering a prover that creates the state $Z(b_j) \ket{\psi}$ instead of $\ket{\psi}$ at the 3rd step (i.e.\ the step where $\ket{\psi}$ is defined). 
+	\end{proof}
+
+\section{An $n$-qubit verification protocol}
+\label{sec:nqubit-verification}
+
+The following theorem is the main result of the past four lectures. It generalizes Proposition~\ref{prop:mahadev-oq} to the case of an $n$-qubit Hamiltonian. 
+
+\begin{theorem}\label{thm:mahadev-nq}
+Let $\mF$ be a function family satisfying~\ref{ass:f1},~\ref{ass:f2},~\ref{ass:f3},~\ref{ass:f4b} and~\ref{ass:f5}. 
+Let $H_\mC$ be an $n$-qubit Hamiltonian of the form~\eqref{eq:lh-comp} and $\delta,\eps>0$ accuracy parameters. Then the verification protocol from Figure~\ref{fig:protocol-mahadev-nq} has the following properties:
+\begin{enumerate}
+\item (Completeness:) For any $n$-qubit state $\ket{\varphi}$, there is a QPT prover that is accepted with probability $1$ in the protocol and such that the value $o$ returned by the verifier at the end of the protocol satisfies $\Es{}[o] = \bra{\varphi} H \ket{\varphi}$.
+\item (Soundness:) For any QPT prover that is accepted with probability  $1$ in the protocol, there is an $n$-qubit state $\rho$ such that the value $o$ returned by the verifier at the end of the protocol satisfies  $\Pr(|o-\Tr(H\rho)| > \delta)\leq \eps$.
+\end{enumerate}
+\end{theorem}
+
+\begin{remark}
+The protocol in Figure~\ref{fig:protocol-mahadev-nq}, as the one in Figure~\ref{fig:protocol-mahadev-oq}, involves $N$ repetitions of an elementary $4$-message procedure. It is possible to parallelize the protocol to a single repetition in which the prover is asked to perform measurements on all $N$ qubits of a ground state of $H_\mC$. This however requires more work, because in the parallelized protocol the verifier needs to request ``mixed'' measurements from the prover; see Remark~\ref{rk:mixed-terms}. 
+\end{remark}
+
+\begin{remark}
+We pause to insist on how amazing Theorem~\ref{thm:mahadev-nq} is. Due to Kitaev's circuit-to-Hamiltonian construction (Section~\ref{sec:certificates-q}) it is known that, under the widely believed assumption that $\QMA \neq \QCMA$ (where $\QCMA$ is the class of languages that admit classical proofs verifiable by QPT verifiers), there exist families of Hamilitonians of the form $H_\mC$ such that any sufficiently low-energy eigenstate of $H_\mC$ cannot have a simple classical description; in particular, there is no small quantum circuit to prepare such eigenstates, they must have high entanglement, etc. Yet Theorem~\ref{thm:mahadev-nq} states that through an efficient classical interaction with a device that has the ability to prepare such states it is possible to \emph{efficiently} verify their \emph{existence}. There are two ways in which one might aim to strengthen that statement. First, in the spirit of ``proofs of knowledge'' we might aim to show that the prover \emph{has} such a state, and not only that it \emph{exists}. Showing this requires a formalization of the notion of the prover ``having'' a certain quantum state, but it can be done without any modification to the protocol itself; see~\cite{vidick2020classical}. Second, in the spirit of our ``test for a qubit'' we might aim to show that the prover \emph{has $n$ qubits}. This we do not know how to show in the computational setting: it is an open question. (See the full notes at~\href{http://users.cms.caltech.edu/\~{}vidick/teaching/fsmp/fsmp.pdf}{http://users.cms.caltech.edu/~vidick/teaching/fsmp/fsmp.pdf} for how to achieve this broader goal under a different assumption, that of spatial assumption between two provers.)
+\end{remark}
+
+\begin{remark}
+The assumption that the prover succeeds with probability $1$ that is made in the soundness statement is not difficult to relax; see Remark~\ref{rk:prover-1}. 
+\end{remark}
+
+
+
+\begin{proof}
+The completeness statement is entirely analogous to the same statement for Proposition~\ref{prop:mahadev-oq}. In slightly more detail, at each of the $N$ iterations the honest prover prepares a fresh copy of the state $\ket{\varphi}$ and then applies the procedure described in the proof of Lemma~\ref{lem:oq-completeness} independently to each of the $n$ qubits of $\ket{\varphi}$, using the key $pk_i$ for the $i$-th qubit and obtaining an outcome $y_i$. For each qubit the post-measurement state is in an $m$-qubit register $\mX_i$ that the prover measures in the standard basis in case of challenge $c=0$, and Hadamard basis in case $c=1$. 
+It can then be verified by direct calculation that in case $c=0$ for any pair $i\neq j$ the parity $(-1)^{b(x_i)+b(x_j)}$ is distributed as a measurement of $\sigma_Z(e_i+e_j)$ on $\ket{\varphi}$, and similarly in case $c=1$ for any pair $i\neq j$ the parity $(-1)^{d_i\cdot( x_{i,0} + x_{i,1}) + d_j\cdot(x_{j,0} + x_{j,1})}$ is distributed as a measurement of $\sigma_X(e_i+e_j)$ on $\ket{\varphi}$. 
+
+For soundness we use Lemma~\ref{lem:comp-ind-nqubits}. The lemma shows that for any iteration $t=1,\ldots,N$ in the protocol we can define a state $\rho_t$ such that averaging over the verifier's choice of qubits $i$ and $j$ it holds that, whenever $c=0$ then 
+\[\Es{}\big[ J_{ij}\, (-1)^{b(x_i)} (-1)^{b(x_j)}\big]\,= \, J_{ij}\,\Tr\big( \sigma_{Z,i}\sigma_{Z,j}  \rho_t \big)\;.\]
+and whenever $c=1$ then 
+\[\Es{}\big[ J_{ij}\, (-1)^{d_i\cdot( x_{i,0}+x_{i,1})} (-1)^{d_j\cdot( x_{j,0}+x_{j,1})} \big]\,\approx \, J_{ij}\,\Tr\big( \sigma_{X,i}\sigma_{X,j}  \rho_t \big)\;,\]
+where the approximation is up to some negligible quantity in $\lambda$. Averaging these two quantities we see that on average over all the rounds, 
+\begin{align*}
+\Es{}[o] &\approx  \frac{1}{N} \sum_{t=1}^N  \sum_{i\neq j} \Big( -\frac{1}{2} J_{ij}\,\Tr\big( \sigma_{Z,i}\sigma_{Z,j}  \rho_t \big) - \frac{1}{2} J_{ij}\,\Tr\big( \sigma_{X,i}\sigma_{X,j}  \rho_t \big)\Big)\\
+& = \frac{1}{N} \sum_{t=1}^N \,\Tr\big( H_\mC \rho_t \big)\\
+&=  \Tr\big( H_\mC \rho \big)\;,
+\end{align*}
+where we defined $\rho = \frac{1}{N}\sum_t \rho_t$. The more quantitative statement given in the soundness part of the theorem follows directly by using a martingale concentration argument, provided the constant $C$ in the definition of $N$ is chosen large enough. 
+\end{proof}
+
+
+\section{Construction of a claw-free function family $\mF$}
+\label{sec:tcf-construction}
+
+The presentation of this section is adapted from~\cite{vidick2020verifying}. 
+
+In Section~\ref{sec:comp-test} we have identified four assumptions (we added a fifth one in Section~\ref{sec:nqubit-measurements}) on a family of functions $\{f_{pk(\lambda)}:\{0,1\}^{m(\lambda)}\to\{0,1\}^{m(\lambda)}\}_{\lambda\in\N}$, such that the five assumptions together are sufficient for the resulting delegated computation protocol to be sound. Can the five assumptions be simultaneously satisfied? Strictly speaking, we do not know the answer. In this section we sketch a construction that \emph{nearly} satisfies the assumptions. The construction appears in~\cite{brakerski2018cryptographic}, and a mild modification of it is used in Mahadev's protocol. Even though the desired assumptions will not all be strictly satisfied by the construction,\footnote{In particular, we construct functions from $\Z_q^m$ to $Z_q^m$ for some $q$ that is required to be large and may not necessarily be chosen even. The definition of assumption~\ref{ass:f2} considers equations modulo $2$, and this is naturally tailored to the capabilities of a quantum prover, for whom it is possible to generate such equations by measuring in the Hadamard basis. The family of functions constructed in this section can be shown to possess the hardcore bit property over $\Z_q$, but proving it over $\Z_2$ requires more work.} it is possible to verify that the protocol itself remains sound.
+
+
+\subsection{The LWE problem}
+
+Our starting point is the \emph{Learning with Errors} problem, introduced by Regev~\cite{regev2009lattices}. The hardness of this problem has become a widely used computational assumption in cryptography, for at least three reasons. The first is that it is very versatile, allowing the implementation of advanced primitives such as fully homomorphic encryption~\cite{gentry2009fully,brakerski2014efficient}, attribute-based encryption~\cite{gorbunov2015attribute}, program obfuscation~\cite{wichs2017obfuscating,goyal2017lockable}, traitor tracing~\cite{goyal2018collusion}, and many others. The second is that the assumption can be reduced to the hardness of \emph{worst-case} computational problems on lattices: an efficient procedure that breaks the LWE assumption \emph{on average} can be used to solve the closest vector problem in (almost) {any} lattice. The third reason, that is most relevant to the use of the LWE assumption made here, is that in contrast to the RSA assumption on the hardness of factoring or the discrete logarithm problem so far it is believed that the LWE problem may be hard for quantum computers, so that cryptographic schemes based on it remain (to the best of published knowledge) secure against quantum attacks. 
+
+The LWE assumption comes in multiple flavors, all roughly equivalent. Here we formulate the \emph{decisional LWE} assumption on the difficulty of distinguishing samples from two distributions. To state the problem, fix a size parameter $n\geq 1$, an integer modulus $q\geq 2$, a number of equations $m\geq n\log q$, and an error distribution $\chi$ over $\Z_q$.\footnote{The use of the parameters $n,m$ and $q$ is local to this section. In particular, the $m$ that specifies the domain and range of the function $f_{pk}$ is not identical to the $m$ here; see below.} Given $\chi$, write $\chi^m$ for the distribution over $\Z_q^m$ that is obtained by sampling each entry of a vector independently according to $\chi$. The decisional LWE assumption is the following.
+
+\begin{quote}\emph{(Decisional LWE, informal)} Let $A$ be a uniformly random matrix in $\Z_q^{m\times n}$, $s$ a uniformly random vector in $\{0,1\}^n$, $e$ a random vector in $\Z_q^m$ drawn from $\chi^m$, and $r$ a uniformly random vector in $\Z_q^m$. Then no classical or quantum probabilistic polynomial-time procedure can distinguish  $(A,As+e)$ from $(A,r)$.
+\end{quote}
+
+Note that the distribution of $(A,As+e)$ and the distribution of $(A,r)$ are in general very far from each other: provided $m$ is sufficiently larger than $n$ a random vector $r$ will not lie in the column span of $A$, nor even be close to it. What the (decisional) LWE assumption asserts is that, even though in principle these distributions are far from each other, it is computationally difficult, given a sample from the one or the other, to tell which is the case.  Note that without the error vector $e$ the task would be easy: given $(A,y)$, solve for $As=y$ and check whether the solution has coefficients in $\{0,1\}$. The LWE assumption is that the inclusion of $e$ makes the task substantially more arduous. In particular, it is well-known that Gaussian elimination is very sensitive to errors, which rules out the most natural approach. 
+
+The definition we gave is informal because we have not specified how the parameters $n,m$ and $q$ should be chosen as a function of the security parameter $\lambda$, and we have not specified the distribution $\chi$. In general one can make the decisional LWE assumption for any choice of these parameters---but for some choices the assumption will be invalidated by existing algorithms. We comment on come choices of parameters that are made in cryptography. The integer $n$ should generally be thought of as commensurate with the security parameter $\lambda$, i.e.\ $n=\Theta(\lambda)$. The modulus $q$ should be at least polynomial in $n$, but can be as large as exponential; this will be the case in our construction. The error distribution $\chi$ can be chosen in multiple ways. A common choice is to set $\chi$ a discretized centered Gaussian distribution with variance $\alpha q$, for some small parameter $\alpha$ (typically chosen as an inverse polynomial function of $n$); this is generally denoted $D_{\Z_q,\alpha q}$. For more details on LWE and its applications, we refer to the survey~\cite{peikert2016decade}. 
+
+\subsection{Construction}
+\label{sec:lwe-construction}
+
+To specify the function family $\mF$ we first describe how public and private parameters for the function are chosen. Let $\lambda$ be the security parameter (i.e.\ the number $2^\lambda$ is thought of as an estimate of the time required to break assumptions such as~\ref{ass:f2}). 
+
+First, integers $n,m$ and a modulus $q$ are chosen such that $n= \Omega(\lambda)$, $q\geq 2$ is a prime, and $m=\Omega(n\log q)$. Then, a matrix $A\in\Z_q^{m\times n}$ is sampled at random, together with a ``trapdoor'' in the form of a matrix $R\in \Z_q^{\ell\times m}$, where $n\leq \ell\leq m$ is a parameter. The sampling procedure has the property that the distribution of $A$ is statistically close to uniform, and $R$ is such that $G = RA \in \Z_q^{\ell\times n}$ is a ``nice'' matrix, in the sense that given $b=Gs+e$, for any $s\in\Z_q^n$ and $e$ small enough, it is computationally easy to recover $s$.\footnote{One can think of $G$ as a matrix whose rows are almost orthonormal, so that Gaussian elimination on $G$ induces only small propagation of the errors.} That such a sampling procedure would exist and be efficiently implementable is non-trivial, and relies on the underlying lattice structure given by the columns of $A$; see~\cite{micciancio2012trapdoors}.
+Finally, a uniformly random $s\in\{0,1\}^n$, and a random $e\in \Z_q^m$ distributed according to $D_{\Z_q,\alpha q}$ with $\alpha$ of order $1/(\sqrt{mn\log q})$,\footnote{The precise choice of $\alpha$ is delicate, and the parameters given here should only be treated as indicative; we refer to~\cite[Section 8]{brakerski2018cryptographic} for the right setting of parameters.} are sampled. The public information is $pk=(A,z=As+e)$. The trapdoor information is the pair $td=(R,s)$. Note that $pk$ is not uniformly distributed, but pairs $(pk,td)$ can be sampled in randomized polynomial time in $\lambda$. 
+
+Next we discuss how the function $f=f_{pk}$ can be evaluated, given the public parameters $pk=(A,z)$. We define two functions $f_0,f_1$ that should be understood as $f(0\|\cdot)$ and $f(1\|\cdot)$ respectively. Each function goes from $\Z_2^{wn}$ to $\Z_2^{wm}$ for $w=\lceil \log q \rceil$. For $b\in\{0,1\}$ the function $f_b$ takes as input an $x\in\Z_q^n$ (that can be seen as an element of $\Z_2^{wn}$ through its binary representation) and returns $Ax+e'+b z$, which is an element of $\Z_q^m \subseteq \Z_2^{wm}$. Here, $e'$ is a vector sampled at random from a distribution $D_{\Z_q,\alpha'q}$ such that $\alpha'$ is ``much larger'' than $\alpha$. The inclusion of $e'$ makes $f$ a ``randomized'' function, which is the main way in which the construction differs from the requirements expressed in Section~\ref{sec:comp-test}. A formal way around this is to think of $f_b$ as the function that returns not $Ax+e'+bz$, but the \emph{distribution} of $Ax+e'+bz$, when $e'\sim D_{\Z_q,\alpha'q}$ and all other variables are fixed. In practice, the evaluation of $f$ on a quantum computer (as required of the honest prover in the verification protocol) involves preparing a weighted superposition over all error vectors, and computing the function in superposition. 
+
+We would, of course, rather do away with this complication. Why is the error vector necessary? It is there to satisfy the important requirement that the functions $f_0$ and $f_1$ are injective with overlapping ranges, so that $f$ itself is $2$-to-$1$. Injectivity follows from the existence of the trapdoor for $A$ and an appropriate setting of the standard deviation of the error distribution, which guarantee that (given the trapdoor) $x$ can  be recovered from $Ax+e'+bz$ (with high probability over the choice of $e'$). To make the function ranges overlap, we need the distribution of $Ax+e'$ to be statistically close to the distribution of $Ax'+e'+z = A(x'+s)+(e'+e)$. The first distribution considers an arbitrary vector in the column span of $A$, shifted by $e$; the second considers the same, except that the shift is by $(e'+e)$. For the two distributions to (almost) match, we need the distribution of $e'$ to (almost) match the distribution of $e+e'$. This is possible as long as the standard deviation $\sigma'=\alpha'q$ is substantially larger than the standard deviation $\sigma=\alpha q$; provided this holds it is an exercise to compute the statistical distance between the two Gaussian and verify that it can be made very close to $1$. 
+
+With this important caveat in place, we have specified the function $f$ and verified property~\ref{ass:f1}. Property~\ref{ass:f3} follows from the existence of the secret information $td=(R,s)$. Given a $b\in\{0,1\}$ and an element $y=Ax+e'+bz = A(x+bs)+(e'+be)$ in the range of $f_b$  it is possible to use the trapdoor matrix $R$ to recover $x+bs$ and subtract $bs$ to deduce the preimage $x$ of $z$ under $f_b$. Property~\ref{ass:f4} holds trivially from the construction. Note that the function $f$ has domain and range that are different. In particular, here the domain is larger than the range, and in case $q$ is not a power of $2$ $f$ is only defined on a subset of its natural domain $\Z_2^{wn}$. These points are not very important and can be ignored at the level of our discussion. 
+
+Showing the hardcore bit property~\ref{ass:f2} and the collapsing condition~\ref{ass:f5} require more work, and we refer to~\cite{brakerski2018cryptographic} for a detailed exposition.\footnote{The collapsing condition is not shown in~\cite{brakerski2018cryptographic}. It is implicitly shown in~\cite{mahadev2018classical}, where it can be seen to follow from property 2 in Definition 4.4 of an extended trapdoor claw-free family. (The connection is made explicit in~\cite{gheorghiu2019computationally}.)}
+ Similar ``hardcore bit'' properties to~\ref{ass:f2} have been shown for many LWE-based cryptographic schemes (see e.g.~\cite{akavia2009simultaneous}). Usually the property states that ``for any vector $d\in\Z_q^n\backslash\{0\}$, the value $d\cdot s\in\Z_q$ is indistinguishable from uniform, even given a sample $(A,As+e)$''. Our property~\ref{ass:f2} is subtly stronger, in that the adversary may choose the vector $d$ itself, possibly as a function of the sample $(A,As+e)$. An additional difficulty stems from the specific equation that the adversary is asked to return. In the definition of Assumption~\ref{ass:f2} this is a $d$ such that $d\cdot (x_0+x_1)=0$, where $x_0$, $x_1$ are the \emph{binary representation} of the two preimages in $\Z_q^n$ of the prover's first message string $y\in \Z_q^m$. (The use of the binary representation comes from the requirements on the honest prover, that is asked to perform a measurement in the Hadamard basis, yielding a binary string of outcomes.) So here $x_0=(0,r_0)$ and $x_1=(1,r_1)$ such that $r_0,r_1$ are binary representations for two elements $x'_0,x'_1\in \Z_q^n$ such that $x'_1=x'_0-s$ over $\Z_q$. Since the binary representation is not linear the equation obtained is not directly a linear equation in the secret $s$. Completing  the argument showing that a procedure that returns the information asked for in Assumption~\ref{ass:f2}, i.e. the pair $(x=(b,r_b),d)$, can be turned into a procedure that breaks the decisional LWE assumption, requires a little more work; this is where we need to assume that the secret vector $s$ is a binary vector. 

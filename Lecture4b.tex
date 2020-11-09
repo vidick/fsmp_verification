@@ -1,0 +1,337 @@
+\chapter{Testing a qubit under computational assumptions}
+\label{chap:computational-test}
+
+The goal of these four lectures is to describe and analyze an interactive protocol that can be used to classically and efficiently certify  that a quantum device implements an entire quantum computation of one's choice. 
+
+In the first lecture we introduce the main ideas of the protocol in an elementary setting by describing a ``computational test for a qubit,'' whose soundness rests on a cryptographic assumption. The resulting interactive test can be executed to certify that a device has quantum capabilities. 
+In the second lecture we formally define the problem of \emph{delegating quantum computations} to an untrusted party and introduce a delegation protocol due to Fitzsimons and Morimae~\cite{morimae2016post} that involves quantum communication from the prover to the verifier. 
+In the last two lectures we combine the Fitzsimons-Morimae protocol with the computational qubit test from the first lecture and a few additional ideas to obtain the classical delegation protocol due to Mahadev~\cite{mahadev2018classical}.  
+
+\medskip
+
+We assume basic familiarity with classical complexity theory (interactive proofs) and quantum computation. These four lectures are adapted from a 10-week course, and the interested reader may consult the full notes available at~\href{http://users.cms.caltech.edu/\~{}vidick/teaching/fsmp/fsmp.pdf}{http://users.cms.caltech.edu/~vidick/teaching/fsmp/fsmp.pdf} for background and a presentation of additional results related to the ones discussed here.
+
+\section{Introduction}
+
+Suppose given the possibility to interact with an arbitrary ``device'', or \emph{prover}, modeled as a black-box interactive machine. Suppose that the interaction is restricted to the exchange of classical messages, and that the \emph{verifier} executing the interaction is itself modeled as a classical probabilistic polynomial-time (PPT) machine. Can the PPT verifier implement a test that allows it to certify, with high confidence, that the behavior demonstrated by the device is quantum, i.e.\ it does not have a classical realization? 
+
+In general this is not possible: almost by definition any input-output behavior has a classical model. An additional assumption thus needs to be introduced. In these lectures we consider the natural assumption that the device is itself a polynomial-time machine; however, it may implement arbitrary \emph{quantum} polynomial-time (QPT) computations. Our setting is thus that of a PPT verifier interacting with a QPT prover. 
+
+A simple interactive ``test of quantumness'' in this setting consists in asking the device to factor a large integer $n$; under the assumption that factoring is hard for classical computers this test adequately distinguishes classical from quantum devices. 
+The main limitation of this test that is generally pointed out is that in order for a device to successfully demonstrate its ``quantumness'' it needs to have the capability to implement a large, fault-tolerant quantum computation. If one's goal is solely to demonstrate quantumness then one may hope for a much simpler test, that could be implemented on a not-necessarily-universal quantum machine. Indeed, such tests have long been known under a different natural assumption of the prover, that it constitutes of two spatially isolated components.\footnote{See the full notes at~\href{http://users.cms.caltech.edu/\~{}vidick/teaching/fsmp/fsmp.pdf}{http://users.cms.caltech.edu/~vidick/teaching/fsmp/fsmp.pdf} for an in-depth discussion of this alternate model.} 
+
+A second limitation that is relevant for us is that the factoring test does not seem to provide a means to certify anything beyond quantumness of the device. Crucially, it does not give us any handle on \emph{how} the device successfully passed the test. To build towards more interesting tests, such as a test for certifying randomness or even a complete quantum computation, we need to develop means that allow us to exert a greater control over the device's workspace: informally, we need to be able to certify that the device ``has some qubits'' and operates on them in a certain way. 
+
+The goal of this lecture is to introduce a test of quantumness that has this feature: the test allows us to certify, in a precise sense, that any device that succeeds in it ``has a qubit''; moreover, we will gain a solid understanding of ``where'' that qubit ``is''. A key insight from the lecture is that in order to obtain such a  test we will need to assume that a certain problem is hard not only for classical computers (such as factoring) but also for quantum computers. We start with a definition of a qubit. 
+
+\section{What is a qubit?}
+
+The  ``qubit'' is generally introduced in quantum computing courses through its \emph{state space}, which is the set of unit vectors in the complex vector space $\C^2$; we denote this space as $\State(\C^2)$. Thus the \emph{state of a qubit} can be represented by a unit vector in $\C^2$; for example, 
+\[\ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}\qquad\text{and}\qquad \ket{+} = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 \\ 1 \end{pmatrix}\]
+are both valid states for a qubit. So we all know how to recognize a valid state for a qubit. But what about \emph{the qubit itself}? Consider an analogous formalization of the notion of a ``probabilistic bit'', a two-level system that can be in any ``superposition'' of its two states, $p \,\ol{0} + (1-p)\,\ol{1}$ for any $p\in [0,1]$. What distinguishes the real, ``$1$-dimensional'' degree of freedom $p\in [0,1]$  of the probabilistic bit from the complex, ``$2$-dimensional'' degree of freedom of the qubit?
+
+To give a precise definition we turn to the ``Heisenberg representation'' of quantum mechanics, that places \emph{observable} quantities at a forefront. Informally, we will distinguish a quantum degree of freedom from a classical one by requiring that the quantum degree of freedom can be measured (observed) in two \emph{mutually incompatible ways}.  
+Recall that in quantum mechanics an observable is specified by 
+ a Hermitian operator $O$ on $\mH$.
+ Each eigenvalue of $O$ represents a possible outcome under a measurement of the observable, and  the associated eigenvectors denote states under which the observable deterministically yields that outcome. 
+An observable such that $O^2=\Id$ has at most two eigenvalues, $-1$ and $+1$. Such an observable is called a \emph{binary} observable; it is the most frequent kind of observable that we will encounter. 
+
+\subsection{First definition of a qubit}
+
+The following definition makes precise our informal presentation of a ``qubit'' as ``a system that can be observed in two mutually incompatible ways''. 
+
+\begin{definition}[Qubit, Take 1]\label{def:qubit-take1}
+A \emph{qubit} is a triple $(\mH,X,Z)$ consisting of a separable Hilbert space $\mH$ and a pair of Hermitian operators $X,Z$ acting on a $\mH$ such that $X^2=Z^2=\Id$ and $\{X,Z\}=XZ+ZX=0$.
+\end{definition}
+
+Let's see why 
+Definition~\ref{def:qubit-take1} captures the intuitive notion of ``mutually incompatible'' observables. Let the 'computational basis' be an eigenbasis of $Z$, and the 'Hadamard basis' an eigenbasis of $X$. Then we claim that the anticommutation relation $XZ+ZX=0$ ensures that any vector in the former makes a $45^{\circ}$ angle with any vector in the latter. To see this, let $\ket{\psi}$ be an eigenvector of $X$ with associated eigenvalue $\eps\in\{\pm 1\}$. Then $\bra{\psi} XZ + ZX \ket{\psi} = 0$ immediately implies $2\eps\bra{\psi} Z \ket{\psi}=0$. Given that $Z$ only has $-1$ and $+1$ as eigenvalues, this relation implies that the projections of $\ket{\psi}$ on the two eigenspaces of $Z$ have equal length; in other words, $\ket{\psi}$ lies exactly between the $+1$ and $-1$ eigenspaces of $Z$. (Yet another way of saying this is that all principal angles between an eigenspace of $X$ and one of $Z$ are $\frac{\pi}{4}$.) In this sense any $X$ and $Z$ satisfying the conditions of the definition are ``maximally incompatible'': any definite state for the one is entirely undetermined (i.e.\ yields uniformly random outcomes when measured) under the other. 
+
+There is a problem with this definition: by allowing the underlying Hilbert space $\mH$ to be arbitrary we seem to have all but lost the usual requirement that a qubit is a system whose state space is ``two-level'' and thus identifiable with the projective space $\State(\C^2)$. Luckily, the following lemma allows us to make the connection with this requirement. 
+
+\begin{lemma}\label{lem:qubit-c2}
+Let $(\mH,X,Z)$ be a qubit. Then there is a Hilbert space $\mH'$ and an isomorphism $\mH\simeq \C^2 \otimes \mH'$ such that under the same isomorphism, $X\simeq \sigma_X\otimes \Id$ and $Z\simeq \sigma_Z \otimes \Id$.\footnote{The reader might wonder what happened to $\sigma_Y$... Don't we need it to define our qubit? Here we are taking the ``operator algebraists''' perspective, which is that if the system supports $X$ and $Z$ observables then it also supports $Y=iXZ$. Because $Y$ is determined by $X$ and $Z$, we do not include it in the definition.} Here, $\sigma_X$ and $\sigma_Z$ are the usual Pauli observables on $\C^2$: in matrix form, 
+\[ \sigma_X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \qquad\text{and}\qquad\sigma_Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}\;.\]
+\end{lemma}
+
+Note that a consequence of the lemma is that qubits, as defined in Definition~\ref{def:qubit-take1}, only exist in spaces of even (or infinite) dimension! In particular, qubits don't exist in dimension $1$; indeed, in dimension $1$ all operators commute. This is satisfactory: intuitively, a situation in which all possible observables commute ought to be considered ``classical'' (for instance, because there is a complete set of simultaneous eigenvectors for all observables). 
+
+It will be essential for our later goals that Definition~\ref{def:qubit-take1} does not \emph{a priori} require $\mH$ to be a two-dimensional space. Indeed, how would one test such a claim? One does not ``see'' the dimension of the state space; while it is possible to probe parts of it it can never be excluded that the state space is larger than what is accessible to the experimentalist's setup. In this sense Definition~\ref{def:qubit-take1} has a nice ``operational'' flavor to it: it refers to \emph{observables} of the system and their properties.  Although much work is needed before we are able to make any of these statements formal, we see the definition as a good step towards giving us the ability to ``test'' that a system ``is a qubit''. In addition, the definition clearly has meaningful consequences; in particular it implies that qubits do not have a ``classical explanation'', so that a ``test for a qubit'' can serve as a ``test for quantumness'', i.e.\ a test that distinguishes quantum from classical behavior. 
+
+The proof of the lemma makes use of an elementary but fundamental tool in the analysis of many quantum information protocols, the CS (for ``Cosine-Sine'') decomposition. We recommend the proof as an exercise to the reader.\footnote{For a solution, see the full notes~\href{http://users.cms.caltech.edu/\~{}vidick/teaching/fsmp/fsmp.pdf}{http://users.cms.caltech.edu/~vidick/teaching/fsmp/fsmp.pdf}.}
+
+\subsection{A second definition}
+
+Unfortunately Definition~\ref{def:qubit-take1} is impossible to ``test''. In any actual interaction with the device the only information available to the verifier is the result of the device's measurements \emph{when performed on its quantum state}. Requiring that the observables themselves anti-commute is too stringent: one may only hope to certify how the observables act \emph{on the state}, not in general. 
+
+To make this point clear, consider the fist step in the analysis of any interactive protocol: how do we model the actions of an arbitrary prover? At each stage the prover receives a question $x\in \mX$ and is expected to provide an answer $a\in\mA$, where $\mX$ and $\mA$ are finite sets that are specified by the protocol. Under the assumption that the prover's actions can be modeled using quantum mechanics, which we will always make, there must exist a Hilbert space $\mH$  associated with the prover and a state $\rho \in \Density(\mH)$ that the prover possesses at the start of the protocol. (We use $\Density(\mH)$ to denote the set of all density matrices, i.e.\ positive semidefinite matrices of trace $1$, on $\mH$.)
+When the prover receives its question $x$ it measures some observable $O_x = \sum_a \lambda_a \Pi^x_a$, where $\lambda_a$ are arbitrary and $\Pi^x_a$ projections that sum to identity. According to the Born rule, it obtains an answer distributed as $\Pr(a|x) = \Tr(\Pi^x_a \rho)$.
+ Finally the quantum state $\rho$ of the prover gets updated as a function of the outcome obtained.\footnote{This formalization is fully general; in particular it can be used to model classical deterministic strategies by setting $\Pi^x_a = 1_{f(x)=a}$ where $f$ would be the function used by the prover to determine its answers. Similarly, randomized strategies can be represented by making use  of a totally mixed state $\rho = \sum_r p_r \proj{r}$, for some arbitrary distribution $\{p_r\}$, to capture the randomness.}
+When the interaction is executed the only observable data that is accessible to the experimentalist is, at best, the probabilities $\Pr(a|x)$.\footnote{We write ``at best'' because the experimentalist does not get to see probabilities. Under the i.i.d.\ assumption it can sometimes estimate them to within an additive error. However, in the case where $\mA$ is a large alphabet it may be that all probabilities are exponentially small. This will be the case in some of the experiments that we describe.}
+If $O$ is an observable, $\ket{\psi}$ a state on which it acts, and $U$ an arbitrary unitary,
+\[ \bra{\psi} O \ket{\psi} =\bra{U\psi}  (UOU^\dagger) \ket{U\psi}\;.\]
+Thus two models of the prover, using state $\ket{\psi}$ and observable $O$ or using state $U \ket{\psi}$ and observable $UOU^\dagger$, lead exactly to the same observed data. Our earlier definition of a qubit, by ignoring the role played by the state and imposing constraints on the operators themselves, violates this. This leads us to update our first definition as follows. 
+
+\begin{definition}[Qubit, Take 2]\label{def:qubit-2}
+A \emph{qubit} is a triple $(\ket{\psi},X,Z)$ such that $\ket{\psi} \in \State(\mH$), where $\mH$ is a separable Hilbert space left implicit in the notation, and $X$ and $Z$ are Hermitian operators on $\mH$ such that
+\begin{equation}\label{eq:ac-state}
+\{X,Z\}\ket{\psi} = 0\;.
+\end{equation}
+\end{definition}
+
+Note that the definition still makes the requirement that  $X^2=Z^2=\Id$ as operators. This is because this requirement follows from the laws of quantum mechanics themselves; informally, it just means that each of $X$ and $Z$ has a spectral decomposition with two associated eigenprojections, i.e.\ they represent valid binary observables. 
+
+At this point there are two important questions we should be asking: (i) Is this definition meanginful? With the anti-commutator weakened as in~\eqref{eq:ac-state}, does the definition still capture our intuitive notion of a qubit? (ii) We weakened the definition in an arbitrary-looking way by inserting a dependence on the state vector $\ket{\psi}$. Can we justify this, i.e.\ are we now able to develop protocols that test the definition? The following lemma provides an answer to the first question. 
+
+\begin{lemma}\label{lem:qubit-2-rigid}
+Let $(\ket{\psi},X,Z)$  be a qubit on $\mH$. Then there exists a Hilbert space $\mH'$ and an isometry $V: \mH\to  \C^2 \otimes \mH'$  such that 
+\begin{equation}\label{eq:qubit-2-rigid-a}
+ V X \ket{\psi} =  (\sigma_X \otimes \Id )V \ket{\psi}\qquad \text{and}\qquad  V Z \ket{\psi} =  (\sigma_Z \otimes \Id )V \ket{\psi} \;.
+\end{equation}
+\end{lemma}
+
+The following diagram illustrates the situation guaranteed by the lemma:
+\begin{equation}\label{diag:one-qubit}
+\begin{tikzcd}
+\mH \arrow{r}{V} \arrow[swap]{d}{X,\; Z} & \C^2 \otimes \mH' \arrow{d}{\sigma_X\otimes \Id,\; \sigma_Z\otimes \Id} \\
+\mH \arrow{r}{V} & \C^2 \otimes \mH'
+\end{tikzcd}
+\end{equation}
+Note that the lemma no longer says that $X$ is \emph{equal} to $\sigma_X \otimes \Id$ (under the isomprhism $\pi$), but only that \emph{it has the same action on the state}, up to the isometry $V$. In particular, it is now possible for $\mH$ to have odd dimension. This is necessary: for example, we can set
+\[ \ket{\psi} = \begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix}\;,\quad X = \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{pmatrix}\;,\quad Z =  \begin{pmatrix} 1 & 0 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 1 \end{pmatrix}\]
+and still satisfy Definition~\ref{def:qubit-2}.  Here, the third dimension has been added to the operators but since none of $\ket{\psi}$, $X\ket{\psi}$ or $Z\ket{\psi}$ has support on it it is ``inaccessible'' to any experiment that involves only this state and operators. However, it is good to verify that the definition is non-trivial, and in particular requires $\dim(\mH)\geq 2$. Indeed, suppose that $X\ket{\psi}$ and $Z\ket{\psi}$ are colinear. Then by~\eqref{eq:qubit-2-rigid-a} it follows that $(\sigma_X\otimes \Id)V\ket{\psi}$ and $(\sigma_Z\otimes \Id)V\ket{\psi}$ are colinear. As we saw in the previous lecture, due to $\{\sigma_X,\sigma_Z\}=0$ this is impossible. 
+
+The proof of the lemma again follows from Jordan's lemma. In the third lecture we will see an explicit definition for the isometry $V$ that provides an alternate proof. For the remainder of the lecture we focus on the second question: can Definition~\ref{def:qubit-2} be tested in an interactive experiment? 
+
+\begin{remark}
+Definition~\ref{def:qubit-2} requires the anti-commutator $\{X,Z\}$ to be exactly zero when evaluated on the state $\ket{\psi}$. In general with any finite test we may only hope to characterize an ``approximate qubit'', which is defined as a triple $(\ket{\psi},Z,X)$ such that $\|\{X,Z\}\ket{\psi}\|\leq \eps$ for some $\eps\geq 0$ that measures the ``quality'' of the qubit. For convenience in these notes we often make a simplifying assumption of ``perfect success'' that allows us to achieve $\eps=0$; unless otherwise noted the statements and proofs that we give  extend readily to the general case.
+\end{remark}
+
+\section{Simon's algorithm}
+
+Having defined the object that we aim to certify, we now remind ourselves of the tools at our disposition by reviewing the prototypical example of a task for which the manipulation of quantum information provides  a computational advantage.
+
+\subsection{The algorithm}
+\label{sec:simon-algorithm}
+
+The input to an instance of Simon's problem is a function $f:\{0,1\}^n\to \{0,1\}^n$ that has the property that $f$ is $2$-to-$1$ (every value in the range has exactly two preimages) and moreover there is a string $s\in\{0,1\}^n$ such that for every $x,y\in\{0,1\}^n$, $f(x)=f(y)$ if and only if $y=x$ or $y=x+ s$, where addition is performed coordinate-wise and modulo $2$. The goal is to recover the string $s$. It is not hard to see that in the worst case any classical algorithm requires at least $\Omega(2^{n/2})$ evaluations of $f$ to determine $s$. This is because on the one hand for any deterministic algorithm that makes a smaller number of evaluations there is a function $f$ such that all values returned by $f$ are distinct, so no information about $s$ is gained; similarly one can show that for any randomized algorithm if $f$ is chosen at random then it is unlikely that the algorithm will gain any information about $s$ in $\ll 2^{n/2}$ evaluations. On the other hand, by making roughly $\Omega(2^{n/2})$ evaluations at random points then by the birthday paradox one will likely obtain $x\neq y$ such that $f(x)=f(y)$, which immediately reveals $s=x+ y$. 
+
+Simon showed that there is a quantum algorithm that can solve this problem using only $O(n)$ evaluations, provided that the function $f$ can be evaluated ``in superposition''. The algorithm first evaluates $f$ on a uniform superposition of inputs, as follows:
+\begin{align*}
+\ket{0^n}\ket{0^n} & \mapsto \frac{1}{\sqrt{2^n}}\sum_x \ket{x} \ket{0^n}\notag\\
+&\mapsto  \frac{1}{\sqrt{2^n}} \sum_x \ket{x} \ket{f(x)}\notag\;.
+\end{align*}
+It then measures the last register in the computational basis, yielding some $y=f(x_0)=f(x_1)$ where $x_0$ and $x_1 = x_0+ s$ are the two preimages of $y$ under $f$. The re-normalized post-measurement state is
+\begin{equation}
+ \frac{1}{\sqrt{2}}\big(\ket{x_0} + \ket{x_1}\big) \ket{y}\;. \label{eq:simon-1}
+\end{equation}
+Measuring the first register in the Hadamard basis yields a uniformly random $d\in\{0,1\}^n$ such that $d\cdot s = 0$. Repeating the entire procedure $O(n)$ times yields $(n-1)$ linearly independent such $d$'s, which suffices to recover $s$ with high probability. 
+
+
+\subsection{Instantiating the black box}
+\label{sec:simon-instantiate}
+
+The main limitation of Simon's problem is that it only provides a \emph{black-box} separation: the quantum advantage holds under the assumption that the classical or quantum algorithms are allowed to evaluate the function $f$, but they are not given an explicit description of it. Showing that the separation still holds for an explicit choice of the function $f$ is much harder, because it is difficult to rule out some smart behavior for the classical algorithm that would take advantage of specific code for $f$; indeed, showing such a separation would be a major breakthrough in quantum algorithms. 
+
+This difficulty shouldn't prevent us from toying with the question: Can we identify natural candidates? For example one could take $f(x) = Ax$ for $A\in \F_2^{n\times n}$ a matrix of rank exactly $(n-1)$. In that case the kernel of $A$ is spanned by a single vector $s\in\F_2^n$, and $f$ is exactly $2$-to-$1$: $f(x_0)=f(x_1)$ if and only if $A(x_0-x_1)=0$, i.e. $x_0-x_1$ is either $0$ or $s$. 
+Unfortunately this $f$ is not a good candidate, because there happens to be an efficient classical algorithm that directly solves Simon's problem for it: Gaussian elimination.\footnote{In the last lecture we will see that a ``noisy'' version of $f$ provides a partial workaround.} The example shows that at a minimum we need a function $f$ that is $2$-to-$1$ but such that finding any colliding pair of inputs $(x_0,x_1)$ with $f(x_0)=f(x_1)$ is computationally difficult. In the next section we introduce some background from cryptography that will allow us to make this requirement precise. 
+
+\section{Computational assumptions}
+
+In this section we briefly review the formalism for making computational assumptions precise and apply it to a specific scenario  of interest for the lecture. 
+
+\subsection{PPT and QPT procedures}
+
+The first thing that we need to make precise is our computational model. Since the protocols we consider involve interaction between a verifier and prover we focus on modeling such devices as machines that perform a computation. Loosely speaking, each device operates in a number of rounds where at each round the device performs a computation that takes it from a certain internal state as well as an input (a message received from another device) to a new internal state and an output (a message that it returns). We will model each such computation as a circuit. A circuit is a sequence of elementary operations called ``gates'' that operate either on a classical state (in which case the gates can be things like an AND, an OR, a NOT, etc.) or a quantum state (in which case the gates can be things like a $1$-qubit Hadamard, a $\sigma_X$ or $\sigma_Z$, a $2$-qubit controlled NOT, etc.).\footnote{To be fully precise we would need to fix a finite gate set for classical circuits and another for quantum circuits. What gate set is used will not matter for us; the only important point is that there exists finite universal gate sets and that all such gate sets are roughly equivalent in terms of how many gates are required to decompose any larger unitary.} To recap, for us a verifier or a prover is specified by a sequence of classical or quantum circuits. We will always assume that the circuits explicitly specify which spaces they are meant to operate on (e.g. verifier's space, message from verifier to prover, etc.). 
+
+Next we discuss what it means for a verifier (or prover) to be ``efficient''. To make this precise we need to talk about \emph{families} of verifiers. We will imagine that there is an underlying size parameter $n\in \N$ (for example, $n$ could be the size of a $3$SAT formula that the verifier aims to check, or the number of qubits that she aims to certify) and that the verifier (or prover) is specified by a classical Turing machine $M$ that on input $1^n$ returns an explicit classical description of a sequence of circuits that can be used to implement the verifier (or prover) for problems of size $n$. We will say that the verifier (or prover) is \emph{probabilistic polynomial time} (PPT) (resp. \emph{quantum polynomial time} (QPT)) if this Turing machine runs in time polynomial in its input (i.e.\ polynomial in $n$; this is why we always assume that $n$ is passed in unary to $M$) and returns a family of classical (resp. quantum) circuits. Note that the assumption that the Turing machine is polynomial time immediately implies that the circuits it returns act on polynomially many bits (resp. qubits) and have a polynomial number of classical (resp. quantum) gates. 
+
+In a cryptographic context we will generally allow $M$ to take a second input $1^\lambda$ for $\lambda\in \N$ called the \emph{security parameter}. While the input size $n$ is governed by the size of the problem, the security parameter can be chosen at will; the larger it is the more ``secure'' the protocol is supposed to be (for example, the smaller the probability that the verifier makes an incorrect decision or the higher the quality of the certified qubits). 
+
+\subsection{Claw-free functions}
+
+Similarly to circuits in the previous section, when we talk about computational \emph{difficulty} of a certain problem we always need to refer to \emph{families} of objects. This is because e.g. for any given function $f$ there is nothing ``hard'' about the task of recovering specific information about $f$: if $f$ is fixed everything about it is fixed as well; in particular in the case when $f$ has the periodic structure required for Simon's problem there is a simple algorithm that identifies $s$, and this is the algorithm that writes $s$ down starting from any initial state. 
+
+For this reason we will always consider families of functions $\{f_{pk}: \{0,1\}^{m(\lambda)} \to \{0,1\}^{m(\lambda)}\}_{pk\in\{0,1\}^{k(\lambda)}}$ where the index $\lambda \in \mathbb{N}$ is called \emph{security parameter} and $k$ and $m$ are polynomially bounded functions of $\lambda$; the idea is that for each $\lambda$ there is a collection of functions, indexed by strings of length $k(\lambda)$ and with the same domain and range, such that the larger the $\lambda$ the more ``complex'' the functions are. For example, we could take $k(\lambda)=\lambda^2$, $m(\lambda)=\lambda$, and $f_{pk}$ to be multiplication by the matrix $A\in\{0,1\}^{\lambda\times \lambda}$ obtained by ``reshaping'' the $\lambda^2$-bit string $pk$ into a $\lambda\times\lambda$ square. 
+
+Let's give our first definition of a cryptographic property that applies to a family of functions. 
+
+\begin{definition}[Claw-free function family]
+A family $\mF = \{f_{pk}: \{0,1\}^{m(\lambda)} \to \{0,1\}^{m(\lambda)}\}_{pk\in\{0,1\}^{k(\lambda)}}$ is \emph{claw-free} against classical (resp. quantum) adversaries if 
+the following conditions hold:
+\begin{itemize}
+\item $f_{pk}$ can be efficiently evaluated: there is a PPT procedure that given $pk$ and $x$ as inputs returns $f_{pk}(x)$.
+\item For every $\lambda\in \mathbb{N}$ and  $pk\in\{0,1\}^{k(\lambda)}$, $f_{pk}$ is $2$-to-$1$.
+\item For every PPT (resp. QPT) procedure $\mA$ the following holds: (the procedure $\mA$ is often personified as the ``adversary'' trying to demonstrate that the function family is \emph{not} claw-free) there exists a negligible\footnote{A function $\mu:\N\to\R$ is called {negligible} if for every polynomial $p$, $p(\lambda)\mu(\lambda)\to_{\lambda\to\infty} 0$.} function $\mu:\N\to\N$ such that for every $\lambda$, 
+\[ \Pr_{pk\leftarrow_R \{0,1\}^{k(\lambda)}}\big( (x_0,x_1)\leftarrow \mA(1^\lambda,pk):\; x_0\neq x_1,\; f_{pk}(x_0)= f_{pk}(x_1)\big) \,\leq\, \mu(\lambda)\;.\]
+\end{itemize}
+\end{definition}
+
+In words, the third condition states that there is no polynomial-time algorithm that given a uniformly chosen index $pk$ for a function from the family is able to return two distinct inputs for the function that constitute a claw.\footnote{A triple $(x_0,x_1,y)$ such that $x_0\neq x_1$ and $f(x_0)=f(x_1)=y$ is called a \emph{claw}. To see why, picture the arrows $x_0\rightarrow y$ and $x_1\rightarrow y$ drawn with $x_0,x_1$ on top of each other on the left and $y$ on the right.}
+
+\begin{remark}
+In the definition we require the function family to be parametrized by arbitrary strings $pk$. In general this requirement can be relaxed; in fact there could even be a single function for every $\lambda$. In cryptographic constructions the function family generally comes equipped with a PPT \emph{key generation procedure} $\textsc{Gen}$ that takes $1^\lambda$ as input and returns $pk$.
+\end{remark}
+
+An example of a claw-free family of functions against PPT adversaries can be constructed as follows. (This construction appears in~\cite{goldwasser1985paradoxical}, where it is used to construct a digital signature scheme.) Let $N=pq$ be a product of two primes $p\equiv 3 \bmod 8 $ and $q\equiv 7 \bmod 8$. This choice ensures that $-1$ and $2$ are not squares $\bmod N$; moreover, if $Q_N$ denotes the set of quadratic residues (i.e.\ squares) modulo $N$ then $f_0(x)=x^2 \bmod N$ and $f_1(x)=4x^2 \bmod N$ are both permutations of $Q_N$. (This fact requires proof but it is a simple exercise in arithmetic.) However, suppose given a claw $(x_0,x_1)$ such that $x_0,x_1\in Q_N$ and $f_0(x_0)=f_1(x_1)$. Then $x_0^2 = 4 x_1^2$ but $x_0 \neq \pm 2x_1 \bmod N$ because $\pm 2x_1\notin Q_N$. Thus computing the GCD of $N$ with $x_0\pm 2x_1$ recovers a nontrivial factor. 
+
+While this family of functions is claw-free with respect to PPT adversaries, it is clearly not claw-free against QPT adversaries, that can use Shor's algorithm to factor efficiently. We will construct such a function family in the next lecture; for the time being we assume its existence. 
+
+
+\subsection{Hardcore bits}
+
+Following the initial steps of Simon's algorithm as described in Section~\ref{sec:simon-algorithm} when instantiated with any $2$-to-$1$ function enables a quantum device to generate strings $d\in\{0,1\}^m$ such that $d\cdot (x_0 + x_1) = 0$, where $(x_0,x_1)$ are preimages of some $y\in \F_2^m$ by $f$. Intuitively one might expect that this represents a computational advantage, because $d$ provides an equation in $x_0+x_1$, which is some information about both preimages together. For example in the case where $x_0+ x_1 = s$, where $s$ is some fixed secret independent of $y$, we saw that provided the equation $d$ can be assumed to be uniformly distributed among all valid equations in $s$ then running the procedure $O(m)$ times gives sufficiently many equations to recover $s$. 
+
+Unfortunately, as discussed in Section~\ref{sec:simon-instantiate} for the only function that we could think of that has this property it is in fact easy to recover $s$, even for a classical computer. This suggests that in general the assumption that $f$ satisfies the structure required for Simon's algorithm might be too strong to obtain an explicit candidate. Moreover, recall that at the start of the lecture we pointed out that our goal is not directly to find a task for which there is a quantum computational advantage, but instead we are trying to identify \emph{two} tasks that the quantum device can perform \emph{separately} but not \emph{simultaneously}---if someone, such as a classical device, was able to execute both tasks simultaneously then it would break the computational assumption. What could those two tasks be here? 
+
+Starting from the state~\eqref{eq:simon-1} it is natural to measure in the Hadamard basis, obtaining as before an equation $d$ such that $d\cdot(x_0+ x_1)=0$, but also in the computational basis, obtaining either $x_0$ or $x_1$. Given that ``honest'' measurements in the computational and hadamard basis are incompatible, these are natural candidates for our ``qubit.'' However, we also saw that if $x_0+ x_1 = s$ for some fixed secret $s$ then the Hadamard measurements alone allow us to recover $s$. So a quantum procedure could recover $s$ ``on the side'' and then, knowing $f$ explicitly, succeed in any reasonable ``test'' by using classical operations alone---this would make it very hard for us to identify the ``qubit'' that the device should have used to recover $s$ (this is similar to the example of Shor's algorithm given at the start of the lecture). But what if the structure of $f$ is a little more complicated, so that e.g.\ $x_0 + x_1 = g(x_0,s)$ for some function $g$? In that case a single equation in $g(x_0,s)$ might not be so useful; even many such equations for varying $x_0$ could be useless since without knowledge of $x_0$ itself one cannot determine what the equation is about. However, if one was able to obtain $x_0$ simultaneously with the equation then one would obtain a sequence of (possibly non-linear, depending on $g$) constraints on $s$. These considerations motivate the following computational assumption:
+
+\begin{assumption}[Adaptive hardcore bit]\label{ass:hc-bit}
+There is a claw-free family of functions $\mF = \{f_{pk}\}$ such that  for any QPT adversary $\mA$ there is a negligible function $\mu$ such that 
+\begin{equation}\label{eq:hc-bit-0}
+\Big|\frac{1}{2} -  \Pr_{pk\leftarrow_R \{0,1\}^{k(\lambda)}}\Big( (x,d)\leftarrow \mA(1^\lambda,pk),\, \{x_0,x_1\}\leftarrow f_{pk}^{-1}(f_{pk}(x)):\; d\neq 0^m \wedge d\cdot ( x_0+x_1) = 0\Big)\Big| \,\leq\, \mu(\lambda)\;.
+\end{equation}
+\end{assumption}
+
+In words, the assumption is that no \emph{quantum} polynomial-time algorithm can \emph{simultaneously} return an element $x$ in the domain of $f$ and an equation $d$ such that, letting $\{x_0,x_1\}$ be the two preimages of $f_{pk}(x)$ under $f_{pk}$ it holds that $d\neq 0^m$ and $d\cdot (x_0+x_1)=0$. Note that although we required $\{f_{pk}\}$ to be claw-free, this requirement is stronger, since any algorithm that can find a claw $(x_0,x_1)$ can be used to break~\eqref{eq:hc-bit-0}.
+
+\begin{remark}
+Assumption~\ref{ass:hc-bit} is called \emph{adaptive hardcore bit} for the following reason. Given a function $f$ a hardcore bit for $f$ is a $1$-bit function $h$ such that given $f(x)$ (but not $x$) it is hard to predict $h(x)$. Here, the hardcore bit that underlies the assumption is the function $h(x)=d\cdot (x_0+x_1)$ for any $d\neq 0^m$: the Goldreich-Levin theorem implies that if $f$ is indeed claw-free then it is hard to predict $b(x)$ for a \emph{random} $d$. The ``adaptive'' qualifier refers to the fact that in~\eqref{eq:hc-bit-0} we allow the adversary $\mA$ itself to select the equation $d$ without requiring that this equation is uniformly distributed  (we will see why this is needed in the next section); in particular $\mA$ may return always the same $d$, and this invalidates the classic Golreich-Levin argument. This makes the property harder to satisfy, because more power is given to the adversary. (Note in particular that we had to explicitly require $d\neq 0^m$, as otherwise there is an easy adversary that always succeeds.)
+\end{remark}
+
+\section{A computational test for a qubit}
+\label{sec:comp-test}
+
+We conclude the lecture by giving a ``proof of concept'' that it is possible to test a qubit based on computational assumptions. Our presentation is a simplified version of the protocol and analysis from~\cite{brakerski2018cryptographic}. For a related approach, see~\cite{cojocaru2019qfactory}. Recalling Definition~\ref{def:qubit-2}, in order to do this we will have to demonstrate that any device successful in the protocol ``has'' (in a sense that will be made precise in the proof) two observables 
+ $X$ and $Z$ that are mutually incompatible. This incompatibility will be based on considerations of computational difficulty. Specifically we will show that, if the quantum device was able to measure $X$ and $Z$ jointly then it would  break a computational problem that is assumed to be hard \emph{even for quantum computers} --- this is as a form of ``computational uncertainty principle''. Since by definition the device can measure $X$ and $Z$ separately, if they commuted then it could also measure them jointly. Therefore, the computational assumption gives rise to an \emph{information-theoretic} consequence on the observables $X$ and $Z$: they must form a qubit.  
+
+ The main computational assumption that we make is the existence of a function family $\{f_{pk}\}$ that satisfies the hardcore bit assumption, Assumption~\ref{ass:hc-bit}. In fact we will need a little bit more. Let's summarize the requirements as follows:
+\begin{enumerate}[label=(\textbf{F.\arabic*})]
+\item\label{ass:f1} There is a $2$-to-$1$ claw-free function family $\mF = \{f_{pk}\}$ equipped with an efficient key generation procedure $\textsc{Gen}(1^\lambda)$ such that for each key $pk$ the function $f_{pk}$ can be evaluated efficiently.
+\item \label{ass:f2}The function family $\mF$ satisfies the adaptive hardcore bit assumption, Assumption~\ref{ass:hc-bit}.
+\item\label{ass:f3} $\mF$ is equipped with a trapdoor: in addition to $pk$, $\textsc{Gen}(1^\lambda)$ returns a trapdoor $td$ such that given $pk$, $td$ and any $y$ in the range of $f_{pk}$ it is possible to efficiently recover the two preimages $x_0$ and $x_1$ of $y$. 
+\item\label{ass:f4} For any $pk$ and any $y$ in the range of $f_{pk}$ the two preimages of $y$ are labelled '$x_0$' and '$x_1$' using some canonical efficient procedure. That is, given a key $pk$ and an $x$ in the domain of $f_{pk}$ it is possible to efficiently determine if $x$ is the '$x_0$' or the '$x_1$' preimage of $y=f(x)$. Let $b:\{0,1\}^m \to \{0,1\}$ be this labeling procedure; $b$ may depend on $pk$. 
+\end{enumerate}
+Let us fix a function family $\mF$ satisfying the assumptions~\ref{ass:f1} to~\ref{ass:f4}. We give a protocol based on $\mF$. The protocol describes the interaction between a classical polynomial-time verifier and a (possibly quantum) polynomial-time prover. Here, the input to both parties is the security parameter $\lambda$; when we refer to PPT or QPT we mean with respect to $\lambda$. The protocol is described in Figure~\ref{fig:protocol-comp-test}. For future reference we refer to it as ``protocol $\pq$.''
+
+\begin{figure}[htbp]
+\rule[1ex]{16.5cm}{0.5pt}\\
+Let $\mF$ be a function family and $\lambda\in\mathbb{N}$ a security parameter. \begin{enumerate}
+\item The verifier generates $(pk,td)\leftarrow \textsc{Gen}(1^\lambda)$. It sends $pk$ to the prover. 
+\item The prover returns $y \in \{0,1\}^m$, where $m=m(\lambda)$. 
+\item The verifier selects a uniformly random challenge $c\leftarrow_R \{0,1\}$ and sends $c$ to the prover. 
+\item 
+\begin{enumerate}
+\item \emph{(pre-image test:)} In case $c=0$ the prover is expected to return an $x\in\{0,1\}^m$. The verifier accepts if and only if $f(x)=1$. 
+\item \emph{(equation test:)} In case $c=1$ the prover is expected to return a $d\in \{0,1\}^m$. The verifier uses $td$ to determine the two preimages $(x_0,x_1)$ of $y$ by $f_{pk}$. She accepts if and only if $d\cdot(x_0+ x_1)=0$. 
+\end{enumerate}
+\end{enumerate}
+\rule[1ex]{16.5cm}{0.5pt}
+\caption{Protocol $\pq$, the computational test for a qubit. The protocol is parametrized by a function family~$\mF$ satisfying assumptions~\ref{ass:f1} to~\ref{ass:f4}.}
+\label{fig:protocol-comp-test}
+\end{figure}
+
+
+
+\begin{theorem}\label{thm:comp-qubit}
+Let $\mF$ satisfy the assumptions~\ref{ass:f1} to~\ref{ass:f4}. Then the following hold for protocol~$\pq$.
+\begin{itemize}
+\item (Completeness:) There is a QPT prover $P$ which succeeds with probability $1$ in the protocol.
+\item (Soundness:) Suppose that a QPT prover $P$ succeeds with probability $1$ in the protocol. Then $P$ has a (near-perfect) qubit. 
+\end{itemize}
+\end{theorem}
+
+We note the slightly informal nature of the theorem and make a few comments:
+\begin{itemize}
+\item Combining Assumption~\ref{ass:hc-bit} with the requirement that the prover $P$ is QPT effectively means that we are assuming that $P$ does not ``have the ability'' to violate~\eqref{eq:hc-bit-0}. Slightly more formally, in the proof we will show that if $P$ \emph{does not} ``have a qubit'' then it can be used to construct an adversary $\mA$ that violates~\eqref{eq:hc-bit-0}. Note also that in the soundness case it should be assumed that $P$ is in fact a family of $\{P_\lambda\}$, one for each possible choice of $\lambda$, that can be uniformly generated from $\lambda$ (i.e.\ there is a classical Turing machine that takes $1^\lambda$ as input and returns a description of a family of circuits that can be used to implement $P_\lambda$).\footnote{Non-uniform adversaries are allowed as long as we make the corresponding non-uniform cryptographic assumption.} 
+\item
+Second, we ought to be a little more precise as to how $P$'s qubit is specified. The two observables $X$ and $Z$ that define it will be derived from the two measurements that $P$ makes based on the challenges $c=0$ or $c=1$. Since these measurements in general have outcomes in $\{0,1\}^n$ some post-processing will be required. Interestingly, the post-processing for the $X$ observable will not be efficient, in the sense that it will require knowledge of $td$. So, our proof will show that there exists two anti-commuting observables on the Hilbert space of $P$ that can be defined from $P$'s operations \emph{and some classical post-processing}. Since the post-processing is classical we can claim in good faith that the ``qubit'' is located on the prover's space, as we are not injecting any external ``quantumness'' in it. 
+\item
+Regarding the assumption that the prover succeeds with probability $1$: this assumption is, of course, unrealistic. The assumption can be lifted at the cost of some amount of work, which we discuss in more detail when we build on the present protocol to construct a more complex protocol for verifying an entire quantum computation in the next lectures. 
+\item
+Finally, an explanation is in order regarding the ``(near-perfect)'' qualifier. This is an unavoidable consequence of the fact that the protocol relies on a computational assumption. Indeed, consider the following possible behavior for the prover. The prover first devotes a small amount of time to trying their luck at breaking the underlying computational assumption (in our case, the prover could randomly generate candidate trapdoors $td'$ and check if they allow it to invert the function $f_{pk}$). If the prover succeeds then it can pass in the protocol without manipulating any quantum state, using the fake $td'$ to find a claw that allows it to answer both types of challenges. If it does not succeed then it behaves honestly in the protocol. Such a prover succeeds with probability $1$, but the measurement operators associated with its answers have a part that is ``classical'' and from which we have no hope of extracting a qubit. 
+\end{itemize}
+
+\begin{proof}[Proof of Theorem~\ref{thm:comp-qubit}]
+The completeness part of the theorem is clear. In the first phase the prover proceeds exactly as in Simon's algorithm to obtain the state~\eqref{eq:simon-1}. In the second phase, it measures the preimage register in the standard basis in case $c=0$ and in the Hadamard basis in case $c=1$, returning the $n$-bit outcome obtained as its answer. This prover is always accepted with probability $1$ in the protocol. 
+
+To show the soundness part of the theorem we start with the usual (and, here, crucial) modeling step. 
+
+\paragraph{Step 1: Modeling.} Since we will not need to model the prover's actions in the  first phase of the protocol in detail we directly give a name to the state of the prover at the end of step 2; let it be $\ket{\psi} \in  \mH_{\reg{P}}$. This state depends on $pk$ as well as on $y$; for clarity we suppress this dependence from the notation. Moreover, in general $\ket{\psi}$ may be a mixed state, and we represent it as a pure state for convenience only; in general one could assume that we included a register $\reg{E}$ to denote an ``environment'' that holds a purification $\ket{\psi}_{\reg{PE}}$ of a general $\rho \in \Density(\mH_{\reg{P}})$. 
+
+At the second stage of the protocol the prover is given a challenge $c\in\{0,1\}$ and tasked with responding with an $n$-bit string, $x$ or $d$ depending on the challenge. In general, $x$ is obtained by performing a POVM $\{\Pi_x\}$ on the prover's entire space, and similarly $d$ is the outcome of a POVM $\{M_d\}$.\footnote{We do not need to explicitly mark any dependence of $\Pi$ or $M$ on $pk$ and $y$, because without loss of generality the prover has kept a classical copy of these strings in its quantum state $\ket{\psi}$, which can be used as a classical control by both $\Pi$ and $M$.} We make the following observations that allow us to simplify the presentation of these POVM:
+\begin{itemize}
+\item Without loss of generality both $\Pi$ and $M$ are projective measurements. This is because we can enlarge $\reg{P}$ and add sufficiently many ancilla qubits initialized to $\ket{0}$ so as to apply Naimark's theorem. 
+\item Without loss of generality, assume that the prover has access to an $m$-qubit register $\reg{X}$ initialized to $\ket{0^m}$. 
+\item Without loss of generality, assume that $\Pi$ is obtained by first applying a unitary transformation $U_0$ on $\mH_\reg{X} \otimes \mH_{\reg{P}}$ followed by a standard basis measurement of $\mH_\reg{X}  \simeq (\C^2)^{\otimes m}$. Any projective measurement can be put in this form by letting $U_0$ be any unitary extension of the map 
+\[\ket{0}\ket{\psi}\in \mH_\reg{X}\otimes \mH_\reg{P}\; \mapsto\; \sum_x \,\ket{x} \sqrt{\Pi_x} \ket{\psi}\;,\]
+ as this map is easily verified to be an isometry on $\ket{0}_\reg{X}\otimes \mH_\reg{P}$. 
+\item Similarly, without loss of generality assume that $M$ is obtained by first applying a unitary transformation $U_1$ on $\mH_\reg{X} \otimes \mH_{\reg{P}}$ followed by a Hadamard basis measurement of $\mH_\reg{X}$.
+\item Without loss of generality assume that $U_0 = \Id$. This is because we can always redefine the prover's state at the end of step 2 to be $\ket{\psi'} = U_0\ket{\psi}$, in which case $U'_0=\Id$ and $U_1'=U_1U_0^\dagger$. Since $U_0=\Id$, we simply use $U$ to denote $U_1$.
+\end{itemize}
+We now introduce observables $Z$ and $X$ on $\mH_\reg{X}$ associated with the prover. For $Z$, we define it to be 
+\begin{equation}\label{eq:comp-qubit-proof-1a}
+Z \,=\, \sum_{x\in\{0,1\}^m} (-1)^{b(x)} \proj{x} \otimes \Id_\reg{P}\;,
+\end{equation}
+where $b:\{0,1\}^n\to\{0,1\}$ is the function from assumption~\ref{ass:f4}. 
+$Z$ is efficiently computable since $b$ is. For $X$, we define it to be 
+\begin{equation}\label{eq:comp-qubit-proof-1b}
+ X\,=\, \sum_{d\in\{0,1\}^m} (-1)^{d\cdot(x_0+x_1)}\,  U^\dagger \big(H^{\otimes m}_\reg{X}\otimes \Id_\reg{P}\big)^\dagger \big(\proj{d}_\reg{X} \otimes \Id_\reg{P} \big)\big(H^{\otimes m}_\reg{X}\otimes \Id_\reg{P}\big) U\;,
+\end{equation}
+where $x_0$ and $x_1$ are the two preimages under $f_{pk}$ of the string $y$ returned by $P$ at step $2$. (There is an observable $X$ for each possible string $y$, but we suppress this dependence from the notation for clarity.) Note that $X$ is \emph{not} efficient, because we are not assuming that determining $x_0+x_1$ from $y$ is efficient in general. However, $X$ can be computed in a straightforward manner by applying the prover's efficient measurement $\{M_d\}$ followed by (non-efficient) classical post-processing. (We insist on this point to clarify that our definition is not injecting ``quantumness'' artificially.) Informally, $X$ can be thought of as the observable that determines if the equation $d$ returned by the prover on challenge $c=1$ is correct or not. In particular, later we will use that for a prover that always succeeds to a challenge $c=1$ we have $X\ket{\psi} = \ket{\psi}$, i.e.\ $\ket{\psi}$ is a $+1$ eigenstate of $X$. 
+
+\paragraph{Step 2: Establishing a qubit.} The goal for the remainder of the proof is to show that $(\ket{\psi},Z,X)$ form a qubit, i.e.\ that the two observables $X$ and $Z$ anticommute on $\ket{\psi}$. Informally, this is because if $X$ and $Z$ were jointly measurable then they could be used to simultaneously obtain a preimage of $y$ and a valid equation $d$ in $x_0+ x_1$, thereby violating~\ref{ass:f2}. We proceed with the details.  
+The heart of the proof is the following claim. 
+
+\begin{claim}\label{claim:comp-qubit-1}
+For any $b\in \{0,1\}$, 
+\[\big| \bra{\psi} Z_b X Z_b \ket{\psi} \big| \,=\, \negl(\lambda) \;,\]
+where $Z_b = (\Id + (-1)^b Z)/2$, $\negl(\lambda)$ denotes some negligible function of $\lambda$, and the expression on the left should be understood on average over $pk\leftarrow \textsc{Gen}(1^\lambda)$ and the distribution of $y$ as returned by $P$ in the protocol. 
+\end{claim}
+
+\begin{proof}
+We do the proof for the case $b=0$, the other case being similar. Suppose for contradiction that there is a polynomial $q:\N\to\R_+$ such that 
+\begin{equation}\label{eq:comp-qubit-proof-2}
+\big| \bra{\psi} Z_0 X Z_0 \ket{\psi} \big| \,\geq\, \frac{1}{q(\lambda)}
+\end{equation} 
+for infinitely many values of $\lambda$. We use this assumption to construct an adversary in~\eqref{eq:hc-bit-0}. The adversary proceeds as follows. Given as input $1^\lambda$ and $pk$ the adversary first executes the first phase of the prover, obtaining an outcome $y$ and a state $\ket{\psi}$. Then, the adversary measures the $m$ qubits in register $\reg{X}$ in the computational basis to obtain a value $x\in \{0,1\}^m$. If $b(x)=0$ then the adversary applies the unitary $V$ and measures register $\reg{X}$ (again) in the Hadamard basis to obtain $d\in \{0,1\}^n$. The adversary returns the pair $(x,d)$. If $b(x)=1$ then the adversary chooses $d\in\{0,1\}^m$ uniformly at random and returns $d$. Since the prover $P$ and $b$ are both efficient, $\mA$ is efficient. 
+
+Note that this adversary does something ``unusual'' in the sense that it sequentially applies two operators that the prover would  never have applied simultaneously in the protocol. It is to make sense of this sequential application that we made the structural simplifications at the start of the proof. Let's analyze the success probability of $\mA$ by using~\eqref{eq:comp-qubit-proof-2}. There are two cases. Suppose first that the adversary obtains an $x$ such that $b(x)=0$. Then since $P$ is assumed to succeed with probability $1$ in case $c=0$, we know that necessarily $x=x_0$, and moreover prior to the measurement the support of $\ket{\psi}$ on $\reg{X}$ contained only the two values $\ket{x_0}$ and $\ket{x_1}$ (as otherwise there would be a chance that the prover returns an invalid preimage to the challenge $c=0$). Thus by definition of $Z$ in~\eqref{eq:comp-qubit-proof-1a} the post-measurement state is $Z_0\ket{\psi}$ (suitably re-normalized). The probability that $\mA$ obtains $b(x)=0$ and then a correct equation is then, by definition of $X$ in~\eqref{eq:comp-qubit-proof-1a} and $X_0 = \frac{1}{2}(\Id + X)$, precisely 
+\[ \bra{\psi} Z_0 X_0 Z_0 \ket{\psi} \,=\, \frac{1}{2} \big( \bra{\psi}Z_0\ket{\psi} + \bra{\psi} Z_0 X Z_0 \ket{\psi} \big) \;.\]
+For the second case assume that $\mA$ obtains an $x$ such that $b(x)=1$. In this case it returns a uniformly random equation; since $x_0+ x_1\neq 0$ this has probability exactly $\frac{1}{2}$ of being correct. Overall, the adversary's success probability is 
+\[ \frac{1}{2}\bra{\psi}Z_1\ket{\psi} +  \frac{1}{2}\big( \bra{\psi}Z_0\ket{\psi} + \bra{\psi} Z_0 X Z_0 \ket{\psi} \big) \,=\, \frac{1}{2} + \frac{1}{2}\bra{\psi} Z_0 X Z_0 \ket{\psi}\;,\]
+where the equality uses $Z_0+Z_1=\Id$ to combine the first two terms. Using~\eqref{eq:comp-qubit-proof-2}, this violates~\eqref{eq:hc-bit-0}. 
+\end{proof}
+
+
+To conclude the proof of the theorem we need the following simple calculation. 
+
+\begin{claim}\label{claim:comp-qubit-2}
+Let $X,Z$ be any two binary observables on $\mH$. Then 
+\[ \frac{1}{4} \{X,Z\}^2 \,=\, X Z_0 X Z_0 + Z_1 X Z_1 X\;.\]
+\end{claim}
+
+\begin{proof}
+This can be verified by direct calculation. Using that $X$ and $Z$ are Hermitian and square to identity we get by expanding the square
+\begin{equation}\label{eq:comp-qubit-proof-3}
+\{X,Z\}^2 = 2 + XZXZ + ZXZX\;.
+\end{equation}
+Expanding $Z = Z_0-Z_1$, 
+\[ ZXZ = Z_0 X Z_0 + Z_1 X Z_1 - Z_0 X Z_1 - Z_1 X Z_0\;.\]
+Moreover, using $Z_0+Z_1 = \Id$ it follows that
+\[ Z_0 X Z_0 + Z_1 X Z_1 + Z_0 X Z_1 + Z_1 X Z_0 = X\]
+Putting the two equations together, $ZXZ = 2\big(Z_0 X Z_0 + Z_1 X Z_1\big) - X$. Plugging back into~\eqref{eq:comp-qubit-proof-3} and using $X^2=\Id$ proves the claim. 
+\end{proof}
+
+Combining Claim~\ref{claim:comp-qubit-2} and Claim~\ref{claim:comp-qubit-1} we make the following calculation: 
+\begin{align*}
+\frac{1}{4}\big\|\{X,Z\}\ket{\psi}\big\|^2
+&= \bra{\psi} X Z_0 X Z_0 \ket{\psi} +\bra{\psi} Z_1 X Z_1 X \ket{\psi}  \\ 
+&= \bra{\psi}  Z_0 X Z_0  \ket{\psi} + \bra{\psi}  Z_1 X Z_1  \ket{\psi} \\ 
+& = \negl(\lambda)\;,
+\end{align*}
+where to obtain the second line we used that $X\ket{\psi}=\ket{\psi}$ since the prover is assumed to succeed with probability $1$ in the protocol (and hence always return a correct equation). This shows that $(\ket{\psi},Z,X)$ is a near-perfect qubit, completing the proof.
+\end{proof}
+
+
+

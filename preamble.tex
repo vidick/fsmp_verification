@@ -1,0 +1,110 @@
+\usepackage{fullpage}
+\usepackage{amsmath,amsfonts,amsthm,mathrsfs,mathpazo,xspace,hyperref,graphicx}
+\usepackage{endnotes}
+\usepackage{color}
+\usepackage{bm}
+\usepackage{times}
+\usepackage{amssymb,latexsym}
+\usepackage{enumitem}
+\usepackage{tikz-cd}
+
+\setlist[itemize]{itemsep=1pt, topsep=1pt}
+
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{assumption}{Assumption}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{oq}[theorem]{Open Question}
+
+\newcommand{\beq}{\begin{eqnarray}}
+\newcommand{\eeq}{\end{eqnarray}}
+
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle#1|}
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
+\newcommand{\Tr}{\mbox{\rm Tr}}
+\newcommand{\Id}{\ensuremath{\mathop{\rm Id}\nolimits}}
+\newcommand{\Es}[1]{\textsc{E}_{#1}}
+
+\newcommand{\reg}[1]{{\textsf{#1}}}
+
+\newcommand{\C}{\ensuremath{\mathbb{C}}}
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\F}{\ensuremath{\mathbb{F}}}
+\newcommand{\K}{\ensuremath{\mathbb{K}}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\Z}{\ensuremath{\mathbb{Z}}}
+
+\newcommand{\pq}{\mathfrak{Q}}
+\newcommand{\pv}{\mathfrak{V}}
+
+
+\newcommand{\mA}{\mathcal{A}}
+\newcommand{\mB}{\mathcal{B}}
+\newcommand{\mC}{\mathcal{C}}
+\newcommand{\mF}{\mathcal{F}}
+\newcommand{\mH}{\mathcal{H}}
+\newcommand{\mP}{\mathcal{P}}
+\newcommand{\mQ}{\mathcal{Q}}
+\newcommand{\mS}{\mathcal{S}}
+\newcommand{\mX}{\mathcal{X}}
+\newcommand{\mY}{\mathcal{Y}}
+
+\newcommand{\setft}[1]{\mathrm{#1}}
+\newcommand{\State}{\setft{S}}
+\newcommand{\Density}{\setft{D}}
+\newcommand{\Pos}{\setft{Pos}}
+\newcommand{\Proj}{\setft{Proj}}
+\newcommand{\Channel}{\setft{C}}
+\newcommand{\Unitary}{\setft{U}}
+\newcommand{\Herm}{\setft{Herm}}
+\newcommand{\Lin}{\setft{L}}
+\newcommand{\Trans}{\setft{T}}
+\DeclareMathOperator{\poly}{poly}
+\DeclareMathOperator{\negl}{negl}
+
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ph}{\ensuremath{\varphi}}
+
+\newcommand{\BQP}{\textsc{BQP}}
+\newcommand{\EXP}{\textsc{EXP}}
+\newcommand{\BPP}{\textsc{BPP}}
+\newcommand{\IP}{\textsc{IP}}
+\newcommand{\QIP}{\textsc{QIP}}
+\newcommand{\NP}{\textsc{NP}}
+\newcommand{\PSPACE}{\textsc{PSPACE}}
+\newcommand{\QMA}{\textsc{QMA}}
+\newcommand{\NEXP}{\textsc{NEXP}}
+\newcommand{\MIP}{\textsc{MIP}}
+\newcommand{\QMIP}{\textsc{QMIP}}
+\newcommand{\PCP}{\textsc{PCP}}
+\newcommand{\RE}{\textsc{RE}}
+\newcommand{\PP}{\textsc{PP}}
+\newcommand{\PH}{\textsc{PH}}
+\newcommand{\ALL}{\textsc{ALL}}
+\newcommand{\QCMA}{\textsc{QCMA}}
+
+
+
+\newcommand{\ol}[1]{\overline{#1}}
+
+\newcommand{\tnote}[1]{\textcolor{magenta}{\small {\textbf{(Thomas:} #1\textbf{)
+      }}}}
+\newcommand{\com}[1]{\textcolor{blue}{\small {\textbf{(Comment:} #1\textbf{)
+      }}}}
+\newcommand{\typo}[1]{\textcolor{red}{\small {\textbf{(Typo:} #1\textbf{)
+      }}}}
+			
+\bibliographystyle{alpha}
+

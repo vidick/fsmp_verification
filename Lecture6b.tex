@@ -1,0 +1,206 @@
+\chapter{Verifying a single qubit-Hamiltonian}
+
+In the previous lecture we introduced the circuit-to-Hamiltonian construction, that given a quantum circuit $\mC$ and an input $x$ to it returns a Hamiltonian $H_\mC$ of the form~\eqref{eq:lh-comp} such that the completeness and soundness properties stated in Theorem~\ref{thm:kitaev} hold. This construction allowed us to reduce the problem of delegating a quantum computation to the problem of deciding if a certain publicly known, explicitly specified exponential-size Hermitian matrix $H_\mC$ has an eigenvalue below a certain threshold $a$, or all its eigenvalues are above $b+\delta$ for a $\delta$ that is at least inverse polynomial in the number of qubits $n$ on which $H_\mC$ acts.\footnote{In the previous lecture this number of qubits was called $n'$, with $n$ the number of qubits of the circuit $\mC$. For the next two lectures, $\mC$ disappears and so we re-use $n$ to measure the size of $H_\mC$.} We then introduced the Fitzsimons-Morimae protocol (Figure~\ref{fig:fhm-protocol}) that is a protocol with one-way communication for verifying this fact. 
+
+Our goal in the next two lectures is to combine the Fitzsimons-Morimae protocol with the computational test for a qubit from lecture~\ref{chap:computational-test}, Section~\ref{sec:comp-test} to obtain a classical protocol with similar guarantees to the Fitzsimons-Morimae protocol. For this we will develop a test that allows one to verify that a prover ``has'' a quantum state $\ket{\psi}$ with certain properties (e.g.\ it satisfies $\bra{\psi}H\ket{\psi} \leq a + \delta/2$, i.e.\ certifies that the outcome of the computation is `$1$'. Note that even though in principle it is sufficient for the verifier to be convinced  that such a $\ket{\psi}$ exists to make the right decision, we will see from the proofs that we can go a little further and give a precise meaning to the notion that the prover `has' $\ket{\psi}$. This, however, will not be as strong as the claim that the prover `has $n$ qubits in state $\ket{\psi}$' in the sense that we gave to the phrase `has $n$ qubits', i.e.\ we will not quite exhibit $2n$ Pauli operators $X_i,Z_i$ that satisfy all the required relations. 
+
+
+\begin{remark}
+In passing to the Hamiltonian model of computation we relaxed our main goal,  from obtaining a value $b \in \{0,1\}$ that is distributed as a measurement of the output qubit of the quantum circuit $\mC$ in the standard basis to obtaining a value that is $1$ whenever this measurement returns $1$ with probability larger than $\frac{2}{3}$, and $0$ whenever it is less than $\frac{1}{3}$. In particular, we make no requirement for circuits that are ``undecided'', e.g. return a random bit as output. This is typical to applications in complexity where it is assumed that circuits of interest make a clear-cut decision, $0$ or $1$; this is the setting discussed in Section~\ref{sec:delegation-definitions}. By tweaking the definition of $H_\mC$ it is in fact possible to guarantee that any state $\ket{\psi}$ such that $\bra{\psi} H_\mC \ket{\psi} \leq a + \delta/2$ is such that a measurement of the first qubit of $\ket{\psi}$ in the standard basis yields an outcome whose distribution is within total variation distance, say, $\frac{1}{100}$ from a measurement of the output qubit of $\mC$. Using this observation the protocol given at the end of this lecture can be adapted to return outcomes that are distributed close to the circuit output distribution, even in cases where the output is not assumed to be biased one way or the other. For simplicity we leave this extension as an exercise to the reader. 
+\end{remark}
+
+
+\section{A test for a specific single-qubit Hamiltonian}
+
+We start with an ``easy'' case: we show how the computational test for a qubit from lecture~\ref{chap:computational-test}, protocol~$\pq$, can be cast as a verification protocol for the claim that the Hamiltonian $H=-\sigma_Z$ has a ``low'' eigenvalue, equal to $-1$. We go a little further by showing how such an eigenstate can be ``extracted'' from any successful prover in the protocol. 
+
+\subsection{An explicit isometry}
+\label{sec:explicit-iso}
+
+Our main result on the computational qubit test, Theorem~\ref{thm:comp-qubit}, states that any successful prover in the protocol must ``have a qubit''. The proof achieves slightly more than that, as it explicitly states what the observables $Z$ in~\eqref{eq:comp-qubit-proof-1a} and $X$ in~\eqref{eq:comp-qubit-proof-1b}  that define the qubit $(\ket{\psi},Z,X)$ are. As we saw in Lemma~\ref{lem:qubit-2-rigid} the qubit implies the existence of an isometry $V:\mH\to \C^2\otimes \mH'$ under which $Z\simeq \sigma_Z$, $X\simeq \sigma_Z$, and $\ket{\psi}\simeq \ket{\psi'} \in \C^2 \otimes \mH'$, giving us an identification of the ``abstract'' qubit $(\ket{\psi},Z,X)$ with a ``concrete'' qubit, i.e.\ the space $\C^2$ and its algebra of operators, of which $\sigma_Z$ and $\sigma_X$ form a linear basis. 
+
+With our present goal of ``extracting'' a specific quantum state (a low-energy eigenstate for the Hamiltonian $H_\mC$) it is worthwhile making $V$ a little more explicit. Indeed, an important point that we did not emphasize so far is that this identification is not ``canonical''. The standard proof of Lemma~\ref{lem:qubit-2-rigid} involves an application of Jordan's lemma to identify a block structure such that in each block, $Z$ and $X$ act like $\sigma_Z$ and $\sigma_X$ respectively. These blocks are obtained by diagonalizing the operator $(X+Z)$. In the case where $X$ and $Z$ anti-commute this operator has only two eigenvalues, $\pm\sqrt{2}$, and the associated eigenspaces are highly degenerate. Any choice of a basis for one of the eigenspaces can be used to specify an isometry $V$ (a basis for the other eigenspace is determined by the first). (That there would be such a degeneracy is easily seen by observing that composing $V$ with any unitary on $\mH'$ still gives a valid isometry with the same properties.)
+
+It is, in fact, possible to define a canonical choice for the isometry. This choice has the advantage that it is explicit and from a computational viewpoint leads to a circuit for $V$ that can be constructed from circuits for $X$ and $Z$. The idea behind the definition is to use the operators $X$ and $Z$ to ``teleport'' the abstract qubit $(\ket{\psi},Z,X)$ into a ``concrete'' qubit $(\ket{\varphi},\sigma_Z,\sigma_X)$ by means of an EPR pair. This is done in the following proposition. 
+
+\begin{proposition}\label{prop:explicit-iso}
+Let $(\ket{\psi},Z,X)$ be a qubit on $\mH$. Let $\ket{\phi^+} = \frac{1}{\sqrt{2}} (\ket{0}\ket{0} + \ket{1}\ket{1})\in \C^2 \otimes \C^2$ be the state of an EPR pair. Let $\mH'= \C^2_\reg{A} \otimes \mH$ and $V: \mH \to \C^2_\reg{Q} \otimes \mH'$ defined by
+\begin{equation}\label{eq:explicit-isometry}
+ \forall \ket{\varphi} \in \mH\;,\quad V\ket{\varphi} = \frac{1}{2}\big(\Id \otimes \Id_\reg{A}\otimes \Id_\reg{Q} + X \otimes \sigma_X \otimes \Id_\reg{Q} + Z \otimes \sigma_Z \otimes \Id_\reg{Q} + XZ \otimes \sigma_X\sigma_Z \otimes \Id_\reg{Q}\big) \ket{\varphi} \ket{\phi^+}_{\reg{AQ}}\;,
+\end{equation}
+where the systems in the range of $V$ are re-ordered so that the first factor $\C^2$ is associated with the second qubit of $\ket{\phi^+}_{\reg{AQ}}$ in~\eqref{eq:explicit-isometry}, and $\mH'$ consists of the state of the first qubit of $\ket{\phi^+}$, i.e.\ register $\reg{A}$, as well as the part of the state in $\mH$.  
+Then $V$ is an isometry and for all $W\in\{X,Z\}$,
+\begin{equation}\label{eq:explicit-isometry-2}
+VW \ket{\psi}\, = (\sigma_W \otimes \Id) V \ket{\psi}\;.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The proof is by direct calculation. First we verify that $V$ is indeed an isometry. This is simply because the four states $\{(\sigma_X(a)\sigma_Z(b) \otimes \Id)\ket{\phi^+},\, a,b\in\{0,1\}\}$ are orthonormal\footnote{For $a,b\in\{0,1\}$ we use the notation $\sigma_X(a)$ for $\sigma_X^a$ and similarly $\sigma_Z(b)$ for $\sigma_Z^b$. The motivation for this notation will be seen later when we consider $n$-qubit Pauli operators.} and $X$ and $Z$ are observables, so that for normalized $\ket{\varphi}$ each of the four terms on the right-hand side of~\eqref{eq:explicit-isometry} has norm exactly $1$. Note that this does not require any other condition on $X,Z$ than that they are observables (in fact, unitarity suffices). In particular, they do not need to anti-commute. Next we verify~\eqref{eq:explicit-isometry-2}. 
+Take $W=X$. Then
+\begin{align*}
+ VX \ket{\psi} &= \frac{1}{2}\big(X \otimes \Id\otimes \Id + \Id \otimes \sigma_X \otimes \Id -XZ \otimes \sigma_Z \otimes \Id -Z \otimes \sigma_X\sigma_Z \otimes \Id\big) \ket{\psi} \ket{\phi^+} \\
+&= \frac{1}{2}\big(X \otimes \Id\otimes \Id + \Id \otimes \sigma_X \otimes \Id -XZ \otimes \sigma_Z \otimes \Id -Z \otimes \sigma_X\sigma_Z \otimes \Id\big) \ket{\psi} (\sigma_X \otimes \sigma_X)\ket{\phi^+} \\
+&= \frac{1}{2}\big(X \otimes \sigma_X \otimes \sigma_X + \Id \otimes \Id \otimes\sigma_X +XZ \otimes \sigma_X \sigma_Z \otimes \sigma_X +Z \otimes \sigma_Z \otimes \sigma_X\big) \ket{\psi} \ket{\phi^+} \\
+&= (\sigma_X \otimes \Id) V \ket{\psi}\;,
+\end{align*}
+where for the first line we used that $X$ and $Z$ anti-commute on $\ket{\psi}$, for the second that $\sigma_X\otimes \sigma_X \ket{\phi^+} = \ket{\phi^+}$, for the third that $\sigma_X$ and $\sigma_Z$ anti-commute, and for the last we re-ordered terms. 
+\end{proof} 
+
+\subsection{Extraction of prover's qubit}
+\label{sec:extract-simple}
+
+In the proof of Theorem~\ref{thm:comp-qubit} we defined a specific $X$ and $Z$ from the prover's actions and showed that they anti-commute. Moreover, we showed that for a prover that always succeeds in the equation test (case $c=1$) it must be the case that the state $\ket{\psi}$ of the prover is a $+1$ eigenstate of $X$, $X\ket{\psi}=\ket{\psi}$. For the definition of $\ket{\psi}\in\mH_\reg{X}\otimes \mH_\reg{P}$, recall that we had assumed that the prover directly measures the qubits in register $\reg{X}$ on challenge $c=0$, and applies an arbitrary unitary $U$ before measuring in the Hadamard basis on challenge $c=1$. This means that after the isometry $V$, the prover's state $\ket{\psi}$ is mapped to a $+1$ eigenstate of $\sigma_X$, i.e.\ the state $\ket{+}$. The following corollary summarizes this discussion. 
+
+\begin{corollary}\label{cor:comp-qubit}
+Suppose that a prover succeeds with probability $1$ in the protocol. Then the isometry $V$ defined from the observables  $Z$ in~\eqref{eq:comp-qubit-proof-1a} and $X$ in~\eqref{eq:comp-qubit-proof-1b} sends $\ket{\psi}$ to $\ket{+}_\reg{Q}\ket{aux}$, for some state $\ket{aux}$ on $\mH'$.
+\end{corollary}
+
+In the context of this lecture we interpret Corollary~\ref{cor:comp-qubit} as our first test for a quantum computation in the Hamiltonian-based model: in this test, the verifier is effectively checking that the prover has prepared a $+1$ eigenstate of the Hamiltonian $\sigma_X$, or in other words a ground state of $H=-\sigma_X$. While we know that this eigenstate always exists, the analysis of the protocol shows that in some sense the prover has prepared the state. This additional observation allows us to make stronger conclusions from the protocol. For example, just as a measurement of $\ket{+}$ in the computational basis yields an unbiased random bit, we are able to deduce that the value of $b(x)$ with $x$ the prover's answer on challenge $c=0$ is an unbiased random bit. This makes the protocol potentially useful for cryptographic applications where the generation of certified unbiased randomness serves as a resource.  
+
+In the development of our test we were greatly aided by the fact that we \emph{know} what is the ground state of $H = -\sigma_X$, and in particular we know that a Hadamard basis measurement of it yields the outcome $0$ (for `$+$') with probability $1$. This ``knowledge'' was indirectly encapsulated in the test performed for the case $c=1$, the analysis of which led us to conclude that $X \ket{\psi} = + \ket{\psi}$. 
+But what if we didn't? What if $H$ is a general Hamiltonian of the form~\eqref{eq:lh-comp}, for which we can't a priori predict measurement outcomes? 
+
+
+\section{Extracting a qubit: general case}
+\label{sec:extract-comp-qubit}
+
+In Section~\ref{sec:explicit-iso} we made the important observation that the map $V$ in~\eqref{eq:explicit-isometry} is a well-defined isometry for any choice of the two observables $X$ and $Z$. In particular, this map allows us to make a meaningful definition of a \emph{space} for a qubit, and a \emph{state} for that qubit, associated with \emph{any} prover in protocol $\pq$, the computational test for a qubit described in Figure~\ref{fig:protocol-comp-test}. This definition does not guarantee that the prover ``has a qubit,'' because it does not say anything about how the prover's observables operate on it. 
+ However, it still allows us to define a \emph{candidate} for a single-qubit state on which $\sigma_X$ and $\sigma_Z$ measurements can \emph{in principle} be made. The next claim evaluates how outcomes of these measurements when performed on the extracted qubit are distributed as a function of the observables $X$ and $Z$ on the prover's state $\ket{\psi}$. 
+
+\begin{claim}\label{claim:iso-xz}
+Let $\ket{\psi} \in \mH$ and $X,Z$ observables on $\mH$ be arbitrary. Let $V$ be defined as in~\eqref{eq:explicit-isometry}. Then the following hold:
+\begin{align}
+\bra{\psi} V^\dagger \big(\sigma_Z \otimes \Id\big) V \ket{\psi} &= \bra{\psi} Z \ket{\psi}\;,\label{eq:isometry-z}\\
+\bra{\psi} V^\dagger \big(\sigma_X \otimes \Id\big) V \ket{\psi} &= \frac{1}{2} \big(  \bra{\psi} X \ket{\psi} -  \bra{\psi} ZXZ \ket{\psi} \big)\;,\label{eq:isometry-x}
+\end{align}
+where the $\sigma_Z$ and $\sigma_X$ operators act on the first tensor factor $\C^2$ in the range of $V$ and the identities act on $\mH'$. 
+\end{claim}
+
+Recalling the diagram~\ref{diag:one-qubit} introduced to illustrate Lemma~\ref{lem:qubit-2-rigid}, Claim~\ref{claim:iso-xz} can similarly be illustrated as follows, where $\Es{b}$ denotes the average over $b$:
+\begin{equation}\label{diag:one-qubit-b}
+\begin{tikzcd}
+\mH  \arrow{r}{V}  \arrow[swap]{dd}{\substack{Z \\[3mm] \Es{b\in\{0,1\}} (-1)^b\, Z^bXZ^b }} &  \C^2 \otimes \mH' \arrow{dd}{\substack{\sigma_Z\otimes \Id\\[3mm] \sigma_X\otimes \Id}} \\
+&\\ 
+\mH  \arrow{r}{V} & \C^2 \otimes \mH'
+\end{tikzcd}
+\end{equation}
+We emphasize that this diagram is purely illustrative and should be understood exactly in the sense of~\eqref{eq:isometry-z} and~\eqref{eq:isometry-x}; i.e.\ it does not imply a relation on the operators but only on the expectation values on the state $\ket{\psi}$. Informally, when considering expectation values only the isometry has the effect of applying a $Z$-twirl to the Hadamard basis observable $X$. 
+
+\begin{proof}
+Let $W\in\{X,Z\}$. Expanding from the definition of $V$,
+\begin{align*}
+\bra{\psi} V^\dagger \big(\sigma_W \otimes \Id\big) V \ket{\psi}
+&= \frac{1}{4}\sum_{P,Q\in \{I,X,Z,XZ\}} \,\bra{\psi} P^\dagger Q \ket{\psi}\cdot \bra{\phi^+} \sigma_P^\dagger \sigma_Q \otimes \sigma_W \ket{\psi}\\
+&= \frac{1}{4}\sum_{P,Q:\, \sigma_P^\dagger \sigma_Q = \sigma_W} \,\bra{\psi} P^\dagger Q \ket{\psi}\;,
+\end{align*}
+where for the second line we used that $\bra{\phi^+} \sigma_W \otimes \sigma_{W'} \ket{\phi^+} = \delta_{W,W'}$ with $\delta$ the Kronecker symbol. In case $W=Z$ the pairs $P,Q$ that appear in the last summation above are $(X,I),(I,X),(XZ,X)$ and $(X,XZ)$. Using $X^2 = \Id$ we obtain~\eqref{eq:isometry-z}. In case $W=X$ then the summation is over $(Z,I),(I,Z),(XZ,Z)$ and $(Z,XZ)$ and has a minus sign for the last two terms due to $\sigma_X\sigma_Z = -\sigma_Z\sigma_X$. Thus we get~\eqref{eq:isometry-x} as well. 
+\end{proof}
+
+Observe that if $X$ and $Z$ anti-commute then Claim~\ref{claim:iso-xz} gives us the result that we expect: in this case $(\ket{\psi},Z,X)$ is a qubit so Proposition~\ref{prop:explicit-iso} applies and the isometry ``intertwines'' measurements $X$ and $Z$ on $\ket{\psi}$ with $\sigma_X$ and $\sigma_Z$ respectively on the first factor of $V\ket{\psi}$. At the other extreme, if $X$ and $Z$ commute then~\eqref{eq:isometry-x} indicates that a measurement in the Hadamard basis of the extracted qubit returns an unbiased random bit. This is expected of a ``classical'' state, which always leads to uniformly random results in the Hadamard basis. The lemma in some sense interpolates between these results. Importantly, it allows us to associate a qubit with the state of an arbitrary prover in the protocol, that is such that the distribution of measurements on the extracted qubit can be related to  quantities that involve the prover's state and observables in the protocol. For convenience we make this into a definition. 
+
+\begin{definition}[Extracted qubit]\label{def:extracted-qubit}
+Let $P$ be a prover in protocol~$\pq$. Let $\ket{\psi}$ be the state of $P$ after having sent $y$ in the first round of interaction. Let $V$ be defined as in~\eqref{eq:explicit-isometry}. Then we call the reduced density of $V\ket{\psi}$ on the first factor $\C^2$, associated with register $\reg{Q}$, the \emph{extracted qubit} and denote it by $\rho_\reg{Q}$. 
+\end{definition}
+
+\begin{lemma}\label{lem:comp-ind-qubits}
+Let $P$ be a prover that succeeds with probability $1$ in the pre-image test of  protocol~$\pq$ and such that the string $d$ returned in the equation test is $d=0^m$ with probability that is negligibly small in $\lambda$. (No other assumption is made on the equation test.) Let $\rho$ be the extracted qubit, as defined in Definition~\ref{def:extracted-qubit}. Then the following hold:
+\begin{itemize}
+\item ($Z$-measurement:) The outcome of measuring $\rho$ in the computational basis is identically distributed to the bit $(-1)^{b(x)}$ computed from the prover's answer $x$ in case $c=0$.
+\item ($X$-measurement:) Under assumption~\ref{ass:f2}, the outcome of measuring $\rho$ in the Hadamard basis is \emph{computationally indistinguishable} from the bit $(-1)^{d\cdot(x_0+x_1)}$ where $d$ is obtained from the prover in case $c=1$.
+\end{itemize}
+\end{lemma}
+
+\begin{remark}[Computational distinguishability]\label{rk:comp-dist}
+The statement of the lemma refers to two distributions being computationally indistinguishable. Informally, this means that no computationally efficient procedure can distinguish a sample taken from one distribution from a sample taken from the other. Formally, families of distributions $D = \{D_\lambda\}$ and $D' = \{D'_\lambda\}$ on universes $\{\mX_\lambda\}$ are said to be  computationally indistinguishable if for any PPT (or QPT for computational indistinguishability against quantum adversaries) procedure $\mA$ there is a negligible function $\mu$ such that for every $\lambda$,
+\[ \Big|\Pr_{x\leftarrow D_\lambda}\big( \mA(1^\lambda,x)=1\big) - \Pr_{x' \leftarrow D'_\lambda}\big(\mA(1^\lambda,x')=1\big)\Big|\,\leq\, \mu(\lambda)\;.\]
+Here, when we refer to computational indistinguishability we will always mean against QPT adversaries. Note that for distributions on a family of universes $\{\mX_\lambda\}$ such that $|\mX_\lambda|$ grows at most polynomially with $\lambda$ the notion of computational indistinguishability is equivalent to statistical indistinguishability, i.e.\ the total variation distance between $D_\lambda$ and $D'_\lambda$ goes to $0$ as fast as some negligible function. (Showing this formally is a good exercise to practice with the definitions.)
+\end{remark}
+
+
+
+\begin{proof}
+The first item follows immediately from~\eqref{eq:isometry-z} in Claim~\ref{claim:iso-xz} and the definition of $Z$ in~\eqref{eq:comp-qubit-proof-1a}, which guarantees that  the bit $(-1)^{b(x)}$ obtained from the prover in case $c=0$ has expectation precisely $\bra{\psi} Z \ket{\psi}$. 
+
+To show the second item we assume for contradiction that the two distributions are computationally distinguishable. Since the distributions are over a single bit, as recalled in Remark~\ref{rk:comp-dist} this is equivalent to statistical distinguishability: there must exist a polynomial $q(\lambda)$ such that for infinitely many values of $\lambda$, 
+\begin{equation}\label{eq:comp-ind-qubits-1}
+ \big|\bra{\psi} X \ket{\psi} +  \bra{\psi} ZXZ \ket{\psi}\big| \,>\, \frac{1}{q(\lambda)}\;,
+\end{equation}
+where recall that the expression on the left should be understood on average over the generation of $pk$ by the verifier and the message $y$ sent by the prover in the first round of interaction. We derive a contradiction with~\ref{ass:f2} by constructing an adversary in~\eqref{eq:hc-bit-0}.  Given $\lambda$ and $pk$ as input, $\mA$ prepares the state $\ket{\psi}$. $\mA$ then measures register $\reg{X}$ in the standard basis to obtain an outcome $x$. Using the assumption that the prover succeeds with probability $1$ in the pre-image test, $f_{pk}(x)=y$ and the (unnormalized) post-measurement state is exactly $Z_{b(x)}\ket{\psi}$, where as usual $Z_b = (\Id + (-1)^b Z)/2$.  Finally, the adversary applies the prover's unitary $U$ and measures in the Hadamard basis to obtain a string $d$. It returns the pair $(x,d)$. The expected value of $(-1)^{d\cdot (x_0+x_1)}$ under this procedure is 
+\[ \bra{\psi} Z_0 X Z_0 \ket{\psi} + \bra{\psi} Z_1 X Z_1 \ket{\psi} \,=\,\frac{1}{2}\big(\bra{\psi} X \ket{\psi} +  \bra{\psi} ZXZ \ket{\psi}\big)\;,\]
+which can be seen by expanding $Z_b=(\Id+(-1)^b Z)/2$ for $b\in \{0,1\}$ and canceling cross-terms. Using~\eqref{eq:comp-ind-qubits-1} and the fact that, $\mA$ violates~\eqref{eq:hc-bit-0}.\footnote{The end of the proof glosses over a detail: one needs to guarantee that the equation $d$ returned by $\mA$ is not $0$. While the lemma assumes that this is the case when the equation is measured directly on $\ket{\psi}$, here $\mA$ measures after $\ket{\psi}$ has already been measured using the observable $Z$. To show that the assumption that $d\neq 0^m$ with probability negligibly close to $1$ still holds one needs to use the ``collapsing'' property of $f_{pk}$, that we will introduce in the next lecture.}
+\end{proof}
+
+
+\section{A single-qubit verification protocol}
+
+In the previous section we showed how to identify a ``qubit'' such that for any prover in the protocol, as long as the prover succeeds in the preimage test then it is possible for the verifier to infer from the prover's answers a bit whose distribution is statistically indistinguishable from outcomes of $\sigma_Z$ or $\sigma_X$ measurements on a well-defined quantum state. In order to turn this into a verification protocol for a single-qubit Hamiltonian, we are missing the completeness statement: while in Section~\ref{sec:comp-test} we saw how a prover could behave in such a way that the extracted qubit is a $\ket{+}$ state, we do not yet know if it is possible to use the protocol for the verification of other single-qubit states. In order for this to work out, we make the following assumption that replaces assumption~\ref{ass:f4}:
+\begin{enumerate}[label=(\textbf{F.4'})]
+\item\label{ass:f4b} For any $pk$ and any $y$ in the range of $f_{pk}$ the two preimages of $y$ take the form $(b,x_b)$ where $b\in\{0,1\}$ and $x_b \in \{0,1\}^{m(\lambda)-1}$. In particular, the function $b:\{0,1\}^m \to \{0,1\}$ returns the first bit of its input. 
+\end{enumerate}
+This assumption is mainly for convenience and holds for most constructions of claw-free functions, including the one that we sketch in the next lecture. Given a $2$-to-$1$ function family that satisfies~\ref{ass:f4b} the following lemma shows how a prover can behave in the protocol so that the extracted qubit defined in the previous section is a state $\ket{\varphi}$ of its choice. 
+
+\begin{lemma}\label{lem:oq-completeness}
+Let $\ket{\varphi}\in\C^2$ be any state. Then there is a way for the prover to behave in protocol~$\pq$ such that the prover is accepted with probability $1$ in the preimage test and moreover the extracted qubit satisfies $\rho_\reg{Q} = \proj{\varphi}$. 
+\end{lemma}
+
+\begin{proof}
+Let $\ket{\varphi} = \alpha\ket{0} + \beta \ket{1}$ for $\alpha,\beta\in\C$ such that $|\alpha|^2 + |\beta|^2 =1$. The prover performs the following steps:
+\begin{enumerate}
+\item Prepare the initial state 
+\[ \ket{\psi^{(0)}}_{\reg{BXY}} \,=\, \ket{\varphi}_\reg{B}\otimes \Big(\frac{1}{2^{m-1}} \sum_{x\in\{0,1\}^{m-1}} \ket{x}_{\reg{X}}\Big) \ket{0}_{\reg{Y}}\;,\]
+where $\reg{B}$ is a one-qubit register, $\reg{X}$ an $(m-1)$ and $\reg{Y}$ an $m$-qubit register, for $m=m(\lambda)$. 
+\item Upon receipt of the function index $pk$, coherently evaluate $f_{pk}$ on the input in registers $\reg{BX}$, writing the output in register $\reg{Y}$ to obtain the state
+\[ \ket{\psi^{(1)}}_{\reg{BXY}} \,=\,  \frac{\alpha}{2^{m-1}}\sum_{x\in\{0,1\}^{m-1}} \ket{0}_\reg{B}\ket{x}_\reg{X}\ket{f(0x)}_\reg{Y} +  \frac{\beta }{2^{m-1}}\sum_{x\in\{0,1\}^{m-1}} \ket{1}_\reg{B}\ket{x}_\reg{X}\ket{f(1x)}_\reg{Y} \;.\]
+\item Measure the last register to obtain a $y$. Let $(0,x_0)$ and $(1,x_1)$ be the two preimages of $y$ under $f_{pk}$. Then the re-normalized post-measurement state is
+\[ \ket{\psi^{(2)}}_{\reg{BXY}} \,=\, \big(\alpha \ket{0}_\reg{B}\ket{x_0}_\reg{X} + \beta \ket{1}_\reg{B}\ket{x_1}_\reg{X}\big)\ket{y}_\reg{Y} \;.\]
+\item Upon receipt of challenge $c$, perform as the honest prover in protocol $\pq$: if $c=0$ measure registers $\reg{BX}$ in the standard basis and return the outcome $x=(b,x_b)$; if $c=1$ measure in the Hadamard basis and return the outcome $d$.
+\end{enumerate}
+This prover always returns a valid preimage in the case of a challenge $c=0$, so it is accepted with probability $1$. Observe that the operator $Z$ associated to this prover is equal to a $\sigma_Z$ on register $\reg{B}$. Regarding the operator $X$, a simple calculation reveals that the action of $X$ restricted to the span of $\ket{0,x_0}_{\reg{BX}}$ and $\ket{1,x_1}_{\reg{BX}}$ consists in exchanging these two basis states. Using the explicit form of the isometry $V$ given in~\eqref{eq:explicit-isometry} one can verify that 
+\[ V \ket{\psi^{(2)}} = \frac{1}{\sqrt{2}}\big(\ket{0}_\reg{B} \ket{x_0}_\reg{X} \ket{0}_\reg{A} + \ket{1}_\reg{B} \ket{x_1}_\reg{X} \ket{1}_\reg{A}\big) \otimes \big(\alpha\ket{0}_\reg{Q} + \beta\ket{1}_{\reg{Q}} \big)\otimes \ket{y}_\reg{Y}\;,\]
+where $\reg{AQ}$ are the two registers introduced to hold the EPR pair $\ket{\phi^+}_{\reg{AQ}}$ used in the definition of $V$. Register $\reg{Q}$ contains the extracted qubit. 
+\end{proof}
+
+
+\begin{figure}[htbp]
+\rule[1ex]{16.5cm}{0.5pt}\\
+Let $\mF$ be a $2$-to-$1$ trapdoor claw-free function family and $\lambda\in\mathbb{N}$ a security parameter. Let $\eps,\delta>0$ be accuracy parameters.  Let $\gamma = 0$ and $N = \frac{C}{\delta^2} \ln(1/\eps)$ for some large constant $C$.
+The verifier and prover repeat the following interaction $N$ times.
+ \begin{enumerate}
+\item The verifier generates $(pk,td)\leftarrow \textsc{Gen}(1^\lambda)$. It sends $pk$ to the prover. 
+\item The prover returns $y \in \{0,1\}^m$, where $m=m(\lambda)$. 
+\item The verifier selects a uniformly random challenge $c\leftarrow_R \{0,1\}$ and sends $c$ to the prover. 
+\item 
+\begin{enumerate}
+\item \emph{(Computational basis, $c=0$:)} In case $c=0$ the prover is expected to return an $x\in\{0,1\}^m$. If $f(x)\neq 0$ then the verifier immediately aborts. The verifier sets $a\leftarrow (-1)^{b(x)}$ and $\gamma \leftarrow \gamma - J_Z a$. 
+\item \emph{(Hadamard basis, $c=1$:)} In case $c=1$ the prover is expected to return a $d\in \{0,1\}^m$. The verifier uses $td$ to determine the two preimages $(x_0,x_1)$ of $y$ by $f_{pk}$. She sets $b\leftarrow (-1)^{d\cdot(x_0+ x_1)}$ and $\gamma \leftarrow \gamma - J_X b$. 
+\end{enumerate}
+\end{enumerate}
+If the verifier has not aborted at any of the steps $c=0$, she returns the real number $o=\frac{1}{N}\gamma$. 
+\rule[1ex]{16.5cm}{0.5pt}
+\caption{Verification protocol for a single-qubit Hamiltonian $H = -\frac{J_X}{2} \sigma_X - \frac{J_Z}{2}\sigma_Z$.}
+\label{fig:protocol-mahadev-oq}
+\end{figure}
+
+The following proposition summarizes what we have achieved so far, a verification protocol for single-qubit Hamiltonians and a completely classical verifier. (Of course a simpler protocol would be to have the verifier classically do the computation themselves! The point is that this protocol is not too hard to extend to $n$ qubits, as we will see in the next lecture.) The protocol, which combines protocol $\pq$ with the Fitzsimons-Morimae verification protocol, is summarized in Figure~\ref{fig:protocol-mahadev-oq}. 
+
+\begin{proposition}\label{prop:mahadev-oq}
+Let $H = -\frac{J_X}{2} \sigma_X -\frac{ J_Z}{2}\sigma_Z$ be a single-qubit Hamiltonian and $\delta,\eps>0$ accuracy parameters. Then the verification protocol from Figure~\ref{fig:protocol-mahadev-oq} has the following properties:
+\begin{enumerate}
+\item (Completeness:) For any single-qubit state $\ket{\varphi}$, there is a QPT prover that is accepted with probability $1$ in the protocol and such that the value $o$ returned by the verifier at the end of the protocol satisfies $\Es{}[o] = \bra{\varphi} H \ket{\varphi}$.
+\item (Soundness:) For any QPT prover that is accepted with probability  $1$ in the protocol, there is a single-qubit state $\rho$ such that the value $o$ returned by the verifier at the end of the protocol satisfies $\Es{}[o] = \Tr(H\rho)$. 
+\end{enumerate}
+Moreover, with the value of $N$ specified in the protocol in both cases it holds that $\Pr(|o-\Tr(H\rho)| > \delta)\leq \eps$.
+\end{proposition}
+
+\begin{remark}\label{rk:prover-1}
+The assumption that the prover succeeds with probability negligibly close to $1$ in the protocol can be relaxed to a constant sufficiently close to $1$, where the distance to $1$ will affect the distance $|\Es{}[{o}] - \Tr(H\rho)|$. First we observe that a success probability negligibly close to $1$ is sufficient; this can be verified by going through the argument again, and nothing needs to be changed. Second, it is possible to show that any prover with success probability $1-\kappa$ for some $\kappa \geq 0$ can be transformed to a prover with success probability negligibly close to $1$, affecting the distribution of $o$ proportionately to $\kappa$. Intuitively, the new prover will test if the value $y$ that the old prover would have returned will lead to success on challenge $c=0$, in case that the test is actually executed by the verifier. This can be done efficiently by the prover by evaluating the pre-image condition on register $\reg{X}$. If this test fails then the new prover simply re-executes the old prover from scratch, until it is certain to achieve success. With probability negligibly close to $1$ this iterative procedure will stop in a polynomial number of steps, and using the ``pretty-good lemma'' it is possible to show that the prover's distribution of outcomes is affected by some $O(\sqrt{\kappa})$ in statistical distance. We omit the details. 
+\end{remark}
+
+\begin{proof}
+The completeness statement follows from Lemma~\ref{lem:oq-completeness}. For soundness we use Lemma~\ref{lem:comp-ind-qubits}. This shows that the expectation of the bit $a$ in step 4.(a) satisfies $\Es{} [a] =  \Tr(\sigma_Z \rho)$ where $\rho$ is the extracted qubit. Similarly, the bit $b$ in step 4.(b) satisfies $\Es{} [b] =  \Tr(\sigma_Z \rho)$. Since by definition
+\[\Es{} [o] \,=\, -\frac{J_Z}{2}\, \Es{} [a] - \frac{J_X}{2}\, \Es{} [b] \]
+the proposition follows. 
+\end{proof}
+
+
